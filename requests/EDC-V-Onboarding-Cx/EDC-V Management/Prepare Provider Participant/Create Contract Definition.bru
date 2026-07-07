@@ -1,0 +1,36 @@
+meta {
+  name: Create Contract Definition
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{cpBaseUrl}}/v5beta/participants/{{provider_id}}/contractdefinitions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "@context": [
+      "https://w3id.org/edc/connector/management/v2"
+    ],
+    "@type": "ContractDefinition",
+    "@id": "{{CONTRACT_DEF_ID}}",
+    "accessPolicyId": "{{POLICY_DEF_ID}}",
+    "contractPolicyId": "{{POLICY_DEF_ID}}",
+    "assetsSelector": [
+      {
+        "@type": "Criterion",
+        "operandLeft": "privateProperties.'https://w3id.org/edc/v0.0.1/ns/permission'",
+        "operator" : "=",
+        "operandRight" : "{{ASSET_PERMISSION}}"
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

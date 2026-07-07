@@ -1,0 +1,9 @@
+.DS_Store
+.git
+.gitignore
+*.tmproj
+.idea/
+# NOTE: do not add "*.tgz" here — it would match the packaged dependency
+# archives under charts/ (e.g. charts/tractusx-connector-*.tgz) that
+# `helm dependency update` downloads, making Helm report the subchart as
+# "missing in charts/ directory".

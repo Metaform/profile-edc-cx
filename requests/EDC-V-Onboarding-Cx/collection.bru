@@ -1,0 +1,34 @@
+meta {
+  name: EDC-V Onboarding
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJFZERTQSIsImtpZCI6InNpZ25pbmctand0bGV0X3BjLTEiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJyZWRsaW5lIiwiaXNzIjoiaHR0cDovL2p3dGxldC5lZGMtdi5zdmMuY2x1c3Rlci5sb2NhbDo4MDgwIiwiYXVkIjoiZWRjdiIsImlhdCI6MTc4MzUxNTUwNCwiZXhwIjoxNzgzNTE5MTA0LCJuYmYiOjE3ODM1MTU1MDQsImFjdCI6eyJpc3MiOiJodHRwczovL2t1YmVybmV0ZXMuZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDplZGMtdjpyZWRsaW5lIn0sInNjb3BlIjoibWFuYWdlbWVudC1hcGk6YWRtaW4gaWRlbnRpdHktYXBpOmFkbWluIGlzc3Vlci1hZG1pbi1hcGk6YWRtaW4gcHJvdmlzaW9uLW1hbmFnZXItYXBpOndyaXRlIHRlbmFudC1tYW5hZ2VyLWFwaTp3cml0ZSBwcm92aXNpb24tbWFuYWdlci1hcGk6cmVhZCB0ZW5hbnQtbWFuYWdlci1hcGk6cmVhZCBpZGVudGl0eS1hcGk6cmVhZCBtYW5hZ2VtZW50LWFwaTpyZWFkIGlzc3Vlci1hZG1pbi1hcGk6cmVhZCBzaWdsZXQtYXBpOnJlYWQgaWRlbnRpdHktYXBpOndyaXRlIG1hbmFnZW1lbnQtYXBpOndyaXRlIGlzc3Vlci1hZG1pbi1hcGk6d3JpdGUifQ.BrpPZMYwMaMOcwfvDFpuRJTMSRfqW7yxb7peubUL__ZLjRrhJ3_bSWYirRuZXmSH_TIDqRqCrnwM4Tz97a2pBw
+}
+
+vars:pre-request {
+  issuer_apiKey: 
+  issuer_clientId: issuer
+  issuer_clientSecret: issuer-secret
+  tenant_clientId: 
+  tenant_clientSecret: 
+  tenant_apiKey: 
+  POLICY_ID: 
+  : 
+}
+
+script:post-response {
+  // Append-only: status code is any 2xx or 409, considering numeric and string descriptions
+  test("Status code is 2xx or 409", function () {
+      const code = res.getStatus(); // numeric
+  
+      const is2xx = code >= 200 && code < 300;
+      const is409 = code === 409;
+  
+      expect(is2xx || is409, `Expected 2xx or 409. Got ${code} ${res.statusText}`).to.be.true;
+  });
+}

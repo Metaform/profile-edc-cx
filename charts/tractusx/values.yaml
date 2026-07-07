@@ -1,0 +1,172 @@
+#
+# Copyright (c) 2025 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+
+# These MUST match the core-platform-distribution release this connector targets.
+# They are used to build the in-cluster identityhub STS endpoint below, using the
+# same <svc>.<namespace>.<clusterDomain> convention as the cpd.fqdn helper.
+global:
+  namespace: edc-v
+  clusterDomain: svc.cluster.local
+  tokenExchangeAudience: edcv
+  # RFC 8693 subject-token wiring (must match jwtlet's client_audience).
+  jwtSubjectTokenAudience: https://kubernetes.default.svc.cluster.local
+  jwtSubjectTokenExpirationSeconds: 3600
+# JAD participant context. `participant.context.id` is bound to the tractusx-connector
+# STS client id below via a YAML anchor (&participantContextId / *participantContextId),
+# so both stay in sync from this single source. Set it to this connector's
+# participant/context identifier registered in identityhub.
+participant:
+  context:
+    id: changeme-participant-id
+
+# Gateway-API HTTPRoute(s) exposing the connector through the cluster's existing
+# Traefik Gateway. The Gateway/GatewayClass itself is provided elsewhere; these
+# routes only attach to it via parentRefs. Rendered by this chart's own templates
+# (templates/httproute-*.yaml), not the upstream subchart.
+route:
+  gateway:
+    name: "edcv-gateway" # REQUIRED when a route is enabled: existing Gateway to attach to
+    namespace: "" # defaults to global.namespace
+    sectionName: "http" # optional: specific Gateway listener name
+  backend:
+    # tractusx-connector controlplane Service (name fixed by fullnameOverride below).
+    service: tractusx-connector-controlplane
+    managementPort: 8081
+  management:
+    # Management API is internal-only per upstream — keep behind an internal listener.
+    enabled: true
+    host: jad.localhost
+    path: /api/tx
+
+# Values for the upstream tractusx-connector subchart are set under the
+# `tractusx-connector:` key. See the upstream chart for the full set of options:
+# https://github.com/eclipse-tractusx/tractusx-edc/tree/main/charts/tractusx-connector
+tractusx-connector:
+  fullnameOverride: tractusx-connector
+  controlplane:
+    debug:
+      enabled: true
+    env:
+      EDC_IAM_DID_WEB_USE_HTTPS: false
+      EDC_IAM_CREDENTIAL_REVOCATION_MIMETYPE: application/json
+    bdrs:
+      server:
+        # Points at the in-cluster bdrs-server deployed by the `bdrs-server:`
+        # block below (service name `tractusx-bdrs-server`, directory API on the
+        # chart-default port 8082). Keep host/namespace in sync with
+        # global.namespace above and with bdrs-server-memory.fullnameOverride below.
+        url: http://tractusx-bdrs-server.edc-v.svc.cluster.local:8082/api/directory
+
+  participant:
+    id: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx"
+  iatp:
+    id: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx"
+    trustedIssuers:
+      - "did:web:issuerservice.edc-v.svc.cluster.local%3A10016:issuer"
+    sts:
+      oauth:
+        # STS token endpoint, served by the identityhub service in this namespace.
+        # Helm does NOT template values.yaml, so this cannot be an {{ include ... }};
+        # it is the literal cpd.fqdn form:
+        #   http://identityhub.<global.namespace>.<global.clusterDomain>:7084/api/sts/token
+        # Keep host/namespace/domain in sync with global.* above.
+        token_url: http://identityhub.edc-v.svc.cluster.local:7084/api/sts/token
+        client:
+          # Bound to participant.context.id above via the YAML anchor.
+          id: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx"
+          secret_alias: sts-secret-alias
+  dataplane:
+    token:
+      signer:
+        privatekey_alias: changeme-dataplane-signer-alias
+      verifier:
+        publickey_alias: changeme-dataplane-verifier-alias
+
+# Values for the upstream bdrs-server-memory subchart are set under the
+# `bdrs-server-memory:` key. This deploys the BPN-DID Resolution Service that the
+# connector's controlplane.bdrs.server.url above resolves. We use the *memory*
+# variant: it keeps its directory in-memory with no PostgreSQL/Vault dependencies,
+# which is ideal for the dev dataspace and avoids the DB provisioning/credential
+# seeding required by the persistent `bdrs-server` chart. State is NOT persisted
+# across restarts. See the upstream chart for the full set of options:
+# https://github.com/eclipse-tractusx/bpn-did-resolution-service/tree/main/charts/bdrs-server
+bdrs-server-memory:
+  # Expose the service as `tractusx-bdrs-server` (the release-prefixed convention
+  # used by the other components) so the connector's bdrs.server.url above resolves
+  # it at tractusx-bdrs-server.<global.namespace>.<clusterDomain>. Keep in sync with the URL.
+  fullnameOverride: tractusx-bdrs-server
+
+  server:
+    # Must not be empty or templating fails. Set to the dataspace issuer DID(s)
+    # whose membership/BPN credentials this BDRS should trust.
+    trustedIssuers:
+      - changeme-trusted-issuer-did
+
+seedJobs:
+  # ServiceAccount created by the platform chart; it has a jwtlet mapping to the
+  # "issuer" participant context with the write / cfm-write scopes these jobs need.
+  serviceAccountName: seed-jobs
+  # hook-succeeded removes finished jobs; before-hook-creation clears a prior run on
+  # upgrade; a failed job is kept for debugging (see the ttl backstop below).
+  hookDeletePolicy: before-hook-creation,hook-succeeded
+  ttlSecondsAfterFinished: 600
+  images:
+    curl: curlimages/curl:latest
+    # psql client (also provides pg_isready) for the DB-insert step.
+    psql: postgres:16-alpine
+  # Seeds vault secrets and a DB row required by the tractusx-connector.
+  tractusxSeed:
+    enabled: true
+    vaults:
+      # Vault A: the connector's own dev HashiCorp Vault (from the tractusx-connector
+      # subchart). Service name is release-derived; leave address empty to default to
+      # http://<release>-vault:8200 in the template.
+      connector:
+        address: ""
+        token: root
+        # KV-v2 engine mount; secret is written at <enginePath>/data/<alias>.
+        enginePath: secret
+        # Written with a "content" field. Must match the
+        # tractusx-connector.dataplane.token.signer.privatekey_alias above.
+        alias: sts-secret-alias
+        content: test
+      # Vault B: the platform/identityhub vault (deployed by core-platform-distribution,
+      # outside this chart). There is no in-repo service name, so this address is REQUIRED.
+      platform:
+        address: "http://core-platform-vault.edc-v.svc.cluster.local:8200"
+        token: root
+        # KV-v2 engine mount for the platform vault (may differ from the connector's;
+        # set to the mount the identityhub secrets live under).
+        enginePath: participants
+        # The secret is written at <enginePath>/data/<participant.context.id>/identityhub/<alias>
+        # (the participant context id and the /identityhub/ segment are prepended in the job).
+        alias: sts-secret-alias
+        content: test
+    db:
+      # Postgres from the tractusx-connector subchart. Service name is release-derived;
+      # leave host empty to default to <release>-postgresql in the template.
+      host: "core-platform-postgresql.edc-v.svc.cluster.local"
+      port: 5432
+      database: identityhub
+      user: ih
+      password: ih
+      # Exact SQL to run (each statement executed with ON_ERROR_STOP=1). Make statements
+      # idempotent (e.g. ON CONFLICT DO NOTHING) so helm upgrade re-runs stay safe.
+      # The connector's participant.context.id (top of this file) is bound to the psql
+      # variable :'participant_context_id'; reference that in the statements below. Override
+      # both the connector and the seed with a single --set participant.context.id=<id>.
+      statements:
+        - "INSERT INTO edc_sts_client (id, client_id, did, name, secret_alias, created_at, participant_context_id) VALUES ('tx_client','did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx','did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx','tx','sts-secret-alias','0',:'participant_context_id') ON CONFLICT (id) DO NOTHING;"
+
+issuer:
+  participantContextId: issuer

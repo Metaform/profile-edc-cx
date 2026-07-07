@@ -1,0 +1,39 @@
+meta {
+  name: List certificates
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{dpBaseUrl}}/certs/api/data/certs/request
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{ACCESS_TOKEN}}
+}
+
+body:json {
+  {
+    
+  }
+}
+
+script:post-response {
+  try {
+    const json = res.getBody();  
+    const id = json[0] ? json[0].id : null;
+  
+    if (id) {
+      bru.setEnvVar("cert_id", id);
+    }
+  }catch (e) {
+    console.error("Failed to fetch cert id", e);
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

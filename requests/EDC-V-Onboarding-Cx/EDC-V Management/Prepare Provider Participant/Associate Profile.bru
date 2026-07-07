@@ -1,0 +1,26 @@
+meta {
+  name: Associate Profile
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{cpBaseUrl}}/v5beta/participants/{{provider_id}}/profiles
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "@context": [
+      "https://w3id.org/edc/connector/management/v2"
+    ],
+    "@type": "AssociateDataspaceProfile",
+    "profiles": ["cx-neptune"]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

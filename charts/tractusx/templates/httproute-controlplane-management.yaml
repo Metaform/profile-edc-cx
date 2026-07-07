@@ -1,0 +1,54 @@
+#
+# Copyright (c) 2025 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+# Gateway-API HTTPRoute exposing the tractusx-connector controlplane management API
+# through an existing Gateway. The management API is internal-only per upstream
+# (auth is a static X-Api-Key), so attach this to an internal/intranet listener.
+#
+{{- if .Values.route.management.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tractusx-connector-controlplane-management
+  namespace: {{ include "jadtx.namespace" . }}
+  labels:
+    {{- include "jadtx.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ required "route.gateway.name is required when a route is enabled" .Values.route.gateway.name }}
+      namespace: {{ .Values.route.gateway.namespace | default (include "jadtx.namespace" .) }}
+      {{- with .Values.route.gateway.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  hostnames:
+    - {{ .Values.route.management.host | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.route.management.path | default "/management" | quote }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /management
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: jwt-auth-management-api
+      backendRefs:
+        - name: {{ .Values.route.backend.service }}
+          port: {{ .Values.route.backend.managementPort }}
+{{- end }}

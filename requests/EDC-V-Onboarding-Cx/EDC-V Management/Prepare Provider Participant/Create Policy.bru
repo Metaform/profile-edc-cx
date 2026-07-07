@@ -1,0 +1,41 @@
+meta {
+  name: Create Policy
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{cpBaseUrl}}/v5beta/participants/{{provider_id}}/policydefinitions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "@context": [
+      "https://w3id.org/edc/connector/management/v2"
+    ],
+    "@type": "PolicyDefinition",
+    "@id": "{{POLICY_DEF_ID}}",
+    "policy": {
+      "@type": "Set",
+      "permission": [
+        {
+          "action": "use",
+          "constraint" : [
+            {
+              "leftOperand": "MembershipCredential",
+              "operator": "eq",
+              "rightOperand": "active"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

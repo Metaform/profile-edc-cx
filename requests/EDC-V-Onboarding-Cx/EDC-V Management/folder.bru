@@ -1,0 +1,13 @@
+meta {
+  name: EDC-V Management
+  seq: 4
+}
+
+auth {
+  mode: inherit
+}
+
+vars:pre-request {
+  consumer_id: {{consumer_context_id}}
+  provider_id: {{provider_context_id}}
+}

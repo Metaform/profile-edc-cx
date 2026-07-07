@@ -1,0 +1,16 @@
+meta {
+  name: Query Certificates
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{dpBaseUrl}}/control/api/control/certs/request
+  body: json
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

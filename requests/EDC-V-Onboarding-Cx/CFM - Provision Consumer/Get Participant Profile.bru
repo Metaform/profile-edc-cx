@@ -1,0 +1,120 @@
+meta {
+  name: Get Participant Profile
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{tmBaseUrl}}/tenants/{{tenant_id}}/participant-profiles/{{participant_profile_id}}
+  body: json
+  auth: inherit
+}
+
+vars:pre-request {
+  test_tenant_id: 3fa9401d-6f47-459d-a4ea-3c6d606633c5
+}
+
+script:post-response {
+  let body = res.getBody()
+  
+  
+  
+  test("Should have VPA state", function () {
+    expect(body).to.have.property("properties");
+    expect(body.properties).to.have.property("cfm.vpa.state") 
+    expect(body.properties["cfm.vpa.state"]).to.have.property("participantContextId")
+    expect(body.properties["cfm.vpa.state"]).to.have.property("holderPid")
+    expect(body.properties["cfm.vpa.state"]).to.have.property("credentialRequest")
+  });
+  
+  let props = body.properties
+  if( props && props["cfm.vpa.state"]){
+    state = props["cfm.vpa.state"]
+    
+    bru.setVar("consumer_context_id", state.participantContextId)
+  }
+}
+
+example {
+  name: 201 Response
+  description: Created
+  
+  request: {
+    url: {{baseUrl}}/api/v1alpha1/tenants/:id/participants
+    method: POST
+    mode: json
+    params:path: {
+      id: 
+    }
+  
+    body:json: {
+      {
+        "error": false,
+        "errorDetail": "",
+        "id": "",
+        "identifier": "",
+        "properties": {},
+        "version": 0,
+        "vpas": [
+          {
+            "cell": {
+              "id": "",
+              "properties": {},
+              "state": "",
+              "stateTimestamp": "",
+              "version": 0
+            },
+            "id": "",
+            "properties": {},
+            "state": "",
+            "stateTimestamp": "",
+            "type": "",
+            "version": 0
+          }
+        ]
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 201
+      text: Created
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "error": false,
+          "errorDetail": "",
+          "id": "",
+          "identifier": "",
+          "properties": {},
+          "version": 0,
+          "vpas": [
+            {
+              "cell": {
+                "id": "",
+                "properties": {},
+                "state": "",
+                "stateTimestamp": "",
+                "version": 0
+              },
+              "id": "",
+              "properties": {},
+              "state": "",
+              "stateTimestamp": "",
+              "type": "",
+              "version": 0
+            }
+          ]
+        }
+      '''
+    }
+  }
+}

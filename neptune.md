@@ -49,6 +49,37 @@ This can be changed to a different name in the profile configuration if necessar
 
 ## 3. Dataspace profile configuration
 
+A dataspace profile can be either configured via `DataspaceProfileConfigurationExtension` or using the API.
+
+### Configured via API
+
+
+```http
+POST /v5beta/dataspaceprofiles HTTP/1.1
+Content-Type: application/json
+{
+  "@context": [
+    "https://w3id.org/edc/connector/management/v2"
+  ],
+  "@type": "DataspaceProfile",
+  "name": "cx-neptune",
+  "protocol": {
+    "version": "2025-1",
+    "binding": "https",
+    "namespace": "https://w3id.org/dspace/2025/1/"
+  },
+  "jsonLdContextsUrl": [
+    "https://w3id.org/catenax/2025/9/policy/context.jsonld",
+    "https://w3id.org/catenax/2025/9/policy/odrl.jsonld",
+    "https://w3id.org/dspace/2025/1/context.jsonld",
+    "https://w3id.org/edc/dspace/v0.0.1"
+  ]
+}
+```
+
+
+### Configured via `DataspaceProfileConfigurationExtension`
+
 Configured via `DataspaceProfileConfigurationExtension`. Each profile is declared under `edc.dataspace.profiles.<alias>.*`; the alias is local to the runtime (it is the config
 grouping key, not the profile id itself).
 
@@ -127,6 +158,65 @@ will return a list of profile ids currently associated with that participant.
 ```
 
 ## 4. DCP scope configuration
+
+
+The DCP scope can be configured via `DynamicDcpScopeConfigurationExtension` or using the API.
+
+### Configured via API
+
+
+MembershipCredential scope
+
+```http
+POST /v5beta/dcpscopes
+Content-Type: application/json
+
+{
+  "@context": [
+    "https://w3id.org/edc/connector/management/v2"
+  ],
+  "@type": "DcpScope",
+  "@id": "bpn-scope",
+  "value": "org.eclipse.dspace.dcp.vc.type:MembershipCredential:read",
+  "profile": "cx-neptune"
+}
+```
+
+BpnCredential scope
+
+```http
+POST /v5beta/dcpscopes
+Content-Type: application/json
+
+{
+  "@context": [
+    "https://w3id.org/edc/connector/management/v2"
+  ],
+  "@type": "DcpScope",
+  "@id": "bpn-scope",
+  "value": "org.eclipse.dspace.dcp.vc.type:BpnCredential:read",
+  "profile": "cx-neptune"
+}
+```
+
+DataExchangeGovernanceCredential scope
+
+```http
+POST /v5beta/dcpscopes
+Content-Type: application/json
+
+{
+  "@context": [
+    "https://w3id.org/edc/connector/management/v2"
+  ],
+  "@type": "DcpScope",
+  "@id": "gov-scope",
+  "value": "org.eclipse.dspace.dcp.vc.type:DataExchangeGovernanceCredential:read",
+  "profile": "cx-neptune"
+}
+```
+
+### Configured via `DynamicDcpScopeConfigurationExtension`
 
 Configured via 
 `DynamicDcpScopeConfigurationExtension` under the prefix `edc.iam.dcp.scopes.<alias>.*`. Two scope categories are used:
@@ -211,12 +301,15 @@ Assumed credential:
 
 CEL expression example:
 
-```json
+```http
+POST /v5beta/celexpressions
+Content-Type: application/json
 {
   "@context": [
     "https://w3id.org/edc/connector/management/v2"
   ],
   "@type": "CelExpression",
+  "@id": "membership-expression",
   "leftOperand": "https://w3id.org/catenax/2025/9/policy/Membership",
   "description": "Catena-X membership check: requires a valid MembershipCredential.",
   "scopes": [
@@ -248,12 +341,15 @@ Assumed credential (right-operand format mirrors the cx-odrl-profile example, e.
 
 CEL expression:
 
-```json
+```http
+POST /v5beta/celexpressions HTTP/1.1
+Content-Type: application/json
 {
   "@context": [
     "https://w3id.org/edc/connector/management/v2"
   ],
   "@type": "CelExpression",
+  "@id": "gov-expression",
   "leftOperand": "https://w3id.org/catenax/2025/9/policy/FrameworkAgreement",
   "description": "Catena-X framework agreement check: the consumer must hold a DataExchangeGovernanceCredential matching the contract version in the right operand (e.g. 1.0).",
   "scopes": [
@@ -284,12 +380,15 @@ Assumed credential:
 
 Cel expression:
 
-```json
+```http
+POST /v5beta/celexpressions
+Content-Type: application/json
 {
   "@context": [
     "https://w3id.org/edc/connector/management/v2"
   ],
   "@type": "CelExpression",
+  "@id": "bpn-expression",
   "leftOperand": "https://w3id.org/catenax/2025/9/policy/BusinessPartnerNumber",
   "description": "Catena-X Business Partner Number check: the active agreement's BPN (or a configured cross-reference property) must equal the right operand.",
   "scopes": [
@@ -374,3 +473,59 @@ edc.mgmt.api.schema.cxneptune.validator.policy.profiles=cx-neptune
 The current `https://w3id.org/catenax/2025/9/policy/schema/policy-schema.json` does not contains the definitions for `PolicyDefinition` but only `Policy`.
 It should be adapted to include `PolicyDefinition` with a `policy` field that points to `https://w3id.org/catenax/2025/9/policy/schema/policy-schema.json#/definitions/CatenaXPolicy`
 
+
+## 7 JSON-LD Context
+
+
+Catena-X uses these custom JSON-LD contexts for its data models.
+
+```
+https://w3id.org/catenax/2025/9/policy/context.jsonld,
+https://w3id.org/catenax/2025/9/policy/odrl.jsonld
+```
+
+We already configured the `cx-neptune` profile to use these contexts. But the JSON-LD processors need to fetch the contexts from the URLs.
+EDC does not load external contexts by default. We can either configure EDC at boot time with mounted context files to cache or use JSON-LD context cache API.
+
+### Using JSON-LD Context Cache API
+
+The JSON-LD context cache API can be used to cache context files on the EDC side.
+
+```http
+POST /v5beta/jsonldcontexts HTTP/1.1
+Content-Type: application/json
+{
+  "@context": [
+    "https://w3id.org/edc/connector/management/v2"
+  ],
+  "@type": "CachedJsonLdContext",
+  "url": "https://w3id.org/catenax/2025/9/policy/odrl.jsonld"
+}
+```
+
+and 
+
+```http
+POST /v5beta/jsonldcontexts HTTP/1.1
+Content-Type: application/json
+{
+  "@context": [
+    "https://w3id.org/edc/connector/management/v2"
+  ],
+  "@type": "CachedJsonLdContext",
+  "url": "https://w3id.org/catenax/2025/9/policy/context.jsonld"
+}
+```
+
+
+### Configuring EDC with mounted context files
+
+
+```
+edc.jsonld.document.cx-policy.url: "https://w3id.org/catenax/2025/9/policy/context.jsonld"
+edc.jsonld.document.cx-policy.path: "/app/jsonld/cx-policy-v1.jsonld"
+edc.jsonld.document.cx-odrl.url: "https://w3id.org/catenax/2025/9/policy/odrl.jsonld"
+edc.jsonld.document.cx-odrl.path: "/app/jsonld/cx-odrl.jsonld"
+```
+
+where `/app/jsonld` is the path to the directory containing the context files.

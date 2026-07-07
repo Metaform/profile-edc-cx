@@ -1,0 +1,59 @@
+#
+# Copyright (c) 2025 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+
+# These MUST match the core-platform-distribution release this connector targets.
+# They are used to build the in-cluster identityhub STS endpoint below, using the
+# same <svc>.<namespace>.<clusterDomain> convention as the cpd.fqdn helper.
+global:
+  namespace: edc-v
+  clusterDomain: svc.cluster.local
+  tokenExchangeAudience: edcv
+  # RFC 8693 subject-token wiring (must match jwtlet's client_audience).
+  jwtSubjectTokenAudience: https://kubernetes.default.svc.cluster.local
+  jwtSubjectTokenExpirationSeconds: 3600
+
+seedJobs:
+  # ServiceAccount created by the platform chart; it has a jwtlet mapping to the
+  # "issuer" participant context with the write / cfm-write scopes these jobs need.
+  serviceAccountName: seed-jobs
+  # hook-succeeded removes finished jobs; before-hook-creation clears a prior run on
+  # upgrade; a failed job is kept for debugging (see the ttl backstop below).
+  hookDeletePolicy: before-hook-creation,hook-succeeded
+  ttlSecondsAfterFinished: 600
+  images:
+    curl: curlimages/curl:latest
+  # Toggle the two seeding phases independently.
+  issuerCredentials:
+    enabled: true
+  dataspaceProfile:
+    enabled: true
+  # Configures the cx-neptune dataspace profile on the EDC controlplane /v5beta
+  # Management API (dataspace profile, JSON-LD contexts, DCP scopes, CEL expressions).
+  edcSeed:
+    enabled: true
+    # In-cluster EDC controlplane Management API endpoint. The seed hits
+    # http://<service>.<namespace>.<clusterDomain>:<port><basePath>/v5beta/<resource>.
+    management:
+      service: controlplane
+      port: 8081
+      # Context path the connector serves the Management API under (the gateway
+      # httproute rewrites the external prefix to this).
+      basePath: /api/mgmt
+    # jwtlet token-exchange for the Management API. resource is the CONNECTOR's
+    # participant context id (not the issuer); scope must grant create on the
+    # Management API. Override with --set seedJobs.edcSeed.participantContextId=<id>.
+    participantContextId: issuer
+    scope: admin
+
+issuer:
+  participantContextId: issuer

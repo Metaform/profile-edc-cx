@@ -1,0 +1,181 @@
+#
+# Copyright (c) 2026 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+
+## Connector-specific seeding: writes the two secrets the tractusx-connector depends on
+## into their respective vaults (dataplane signer key -> connector vault; STS client
+## secret -> platform/identityhub vault) and runs the configured DB insert(s) against the
+## connector's postgres. Ordering inside the pod: wait-for-deps -> seed-vaults (init
+## containers, sequential) -> seed-db (main container).
+
+{{- if .Values.seedJobs.tractusxSeed.enabled }}
+{{- $seed := .Values.seedJobs.tractusxSeed }}
+{{- $connectorVault := $seed.vaults.connector.address | default (printf "http://%s:8200" (include "jadtx.fqdn" (dict "svc" (printf "%s-vault" .Release.Name) "ctx" $))) }}
+{{- $platformVault := $seed.vaults.platform.address }}
+{{- $dbHost := $seed.db.host | default (include "jadtx.fqdn" (dict "svc" (printf "%s-postgresql" .Release.Name) "ctx" $)) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tractusx-edc-seed
+  namespace: {{ include "jadtx.namespace" . }}
+  labels:
+    app: tractusx-edc-seed
+    platform: edcv
+    type: edcv-job
+    {{- include "jadtx.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": {{ .Values.seedJobs.hookDeletePolicy | quote }}
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: {{ .Values.seedJobs.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app: tractusx-edc-seed
+        platform: edcv
+        type: edcv-job
+    spec:
+      serviceAccountName: {{ .Values.seedJobs.serviceAccountName }}
+      restartPolicy: OnFailure
+      initContainers:
+        # Wait until both vaults answer their health endpoint.
+        - name: wait-for-deps
+          image: {{ .Values.seedJobs.images.curl }}
+          env:
+            - name: CONNECTOR_VAULT
+              value: {{ $connectorVault | quote }}
+            - name: PLATFORM_VAULT
+              value: {{ $platformVault | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              for VAULT in "$CONNECTOR_VAULT" "$PLATFORM_VAULT"; do
+                until curl -sf "$VAULT/v1/sys/health" >/dev/null; do
+                  echo "Waiting for vault $VAULT to be ready..."
+                  sleep 5
+                done
+                echo "Vault $VAULT is ready!"
+              done
+
+        # Write the two secrets into their respective vaults (KV v2, field "content").
+        - name: seed-vaults
+          image: {{ .Values.seedJobs.images.curl }}
+          env:
+            - name: CONNECTOR_VAULT
+              value: {{ $connectorVault | quote }}
+            - name: CONNECTOR_TOKEN
+              value: {{ $seed.vaults.connector.token | quote }}
+            - name: CONNECTOR_ENGINE
+              value: {{ $seed.vaults.connector.enginePath | quote }}
+            - name: CONNECTOR_ALIAS
+              value: {{ $seed.vaults.connector.alias | quote }}
+            - name: CONNECTOR_CONTENT
+              value: {{ $seed.vaults.connector.content | quote }}
+            - name: PLATFORM_VAULT
+              value: {{ $platformVault | quote }}
+            - name: PLATFORM_TOKEN
+              value: {{ $seed.vaults.platform.token | quote }}
+            - name: PLATFORM_ENGINE
+              value: {{ $seed.vaults.platform.enginePath | quote }}
+            - name: PLATFORM_ALIAS
+              value: {{ $seed.vaults.platform.alias | quote }}
+            - name: PLATFORM_CONTENT
+              value: {{ $seed.vaults.platform.content | quote }}
+            # Participant context id (single source: participant.context.id); used to
+            # compose the platform secret path <ctx>/identityhub/<alias>.
+            - name: PARTICIPANT_CONTEXT_ID
+              value: {{ $.Values.participant.context.id | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              # Executes a curl request, storing the response body in RESP_BODY and status in RESP_STATUS.
+              do_curl() {
+                RESP=$(curl -s -w "\n%{http_code}" "$@")
+                RESP_STATUS=$(printf '%s\n' "$RESP" | tail -1)
+                RESP_BODY=$(printf '%s\n' "$RESP" | sed '$d')
+              }
+
+              # write_secret <vault-url> <token> <engine-mount> <secret-path> <content>
+              # Writes KV v2 at <engine-mount>/data/<secret-path> with a "content" field.
+              write_secret() {
+                VAULT="$1"; TOKEN="$2"; ENGINE="$3"; SECRET_PATH="$4"; CONTENT="$5"
+                echo "Writing secret '$ENGINE/$SECRET_PATH' to $VAULT ..."
+                do_curl -X POST "$VAULT/v1/$ENGINE/data/$SECRET_PATH" \
+                  -H "X-Vault-Token: $TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"data\":{\"content\":\"$CONTENT\"}}"
+                if [ "$RESP_STATUS" -ge 400 ]; then
+                  echo "ERROR: Failed to write '$ENGINE/$SECRET_PATH' (HTTP $RESP_STATUS): $RESP_BODY"
+                  exit 1
+                fi
+                echo "✓ Secret '$ENGINE/$SECRET_PATH' written"
+              }
+
+              echo "================================================"
+              echo "Seeding vault secrets"
+              echo "================================================"
+              write_secret "$CONNECTOR_VAULT" "$CONNECTOR_TOKEN" "$CONNECTOR_ENGINE" "$CONNECTOR_ALIAS" "$CONNECTOR_CONTENT"
+              # Platform vault: secret path is composed <participant-context-id>/identityhub/<alias>.
+              write_secret "$PLATFORM_VAULT" "$PLATFORM_TOKEN" "$PLATFORM_ENGINE" "${PARTICIPANT_CONTEXT_ID}/identityhub/${PLATFORM_ALIAS}" "$PLATFORM_CONTENT"
+              echo "✓ Vault seeding complete"
+      containers:
+        # Run the configured DB insert(s) once postgres is accepting connections.
+        - name: seed-db
+          image: {{ .Values.seedJobs.images.psql }}
+          env:
+            - name: DB_HOST
+              value: {{ $dbHost | quote }}
+            - name: DB_PORT
+              value: {{ $seed.db.port | quote }}
+            - name: DB_DATABASE
+              value: {{ $seed.db.database | quote }}
+            - name: DB_USER
+              value: {{ $seed.db.user | quote }}
+            - name: PGPASSWORD
+              value: {{ $seed.db.password | quote }}
+            - name: PARTICIPANT_CONTEXT_ID
+              value: {{ $.Values.participant.context.id | quote }}
+            {{- range $i, $stmt := $seed.db.statements }}
+            - name: STMT_{{ $i }}
+              value: {{ $stmt | quote }}
+            {{- end }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" >/dev/null 2>&1; do
+                echo "Waiting for postgres at $DB_HOST:$DB_PORT to be ready..."
+                sleep 5
+              done
+              echo "Postgres is ready!"
+
+              echo "================================================"
+              echo "Running DB seed statements"
+              echo "================================================"
+              {{- range $i, $stmt := $seed.db.statements }}
+              echo "Executing statement {{ $i }} ..."
+              # Feed the statement on stdin (not -c) so psql runs its lexer and
+              # interpolates :'participant_context_id'. -c would send it verbatim.
+              printf '%s\n' "$STMT_{{ $i }}" | psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_DATABASE" -v ON_ERROR_STOP=1 -v participant_context_id="$PARTICIPANT_CONTEXT_ID"
+              echo "✓ Statement {{ $i }} executed"
+              {{- end }}
+              echo "✓ DB seeding complete"
+{{- end }}

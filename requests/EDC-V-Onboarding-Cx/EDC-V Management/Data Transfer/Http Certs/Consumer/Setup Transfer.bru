@@ -1,0 +1,48 @@
+meta {
+  name: Setup Transfer
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{cpBaseUrl}}/v5beta/participants/{{consumer_id}}/transferprocesses
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "@context": [
+      "https://w3id.org/edc/connector/management/v2"
+    ],
+    "@type": "TransferRequest",
+    "protocol": "http-dsp-profile-2025-1",
+    "counterPartyAddress": "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/{{provider_id}}/http-dsp-profile-2025-1",
+    "contractId": "{{AGREEMENT_ID}}",
+    "transferType": "HttpData-PULL"
+  }
+}
+
+script:post-response {
+  try {
+      const json = res.getBody();
+      const transferProcessId = json['@id'];
+    
+      if (transferProcessId && typeof transferProcessId === 'string') {
+          bru.setVar('TRANSFER_ID', transferProcessId);
+      } else {
+          console.warn('Transfer Id not found');
+      }
+  
+  } catch (e) {
+      console.error('Failed to parse response or set transfer id:', e);
+      test('Response is valid JSON', function () {
+          throw e;
+      });
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

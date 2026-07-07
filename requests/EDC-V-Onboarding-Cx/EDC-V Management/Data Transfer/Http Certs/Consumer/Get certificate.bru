@@ -1,0 +1,20 @@
+meta {
+  name: Get certificate
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{dpBaseUrl}}/certs/api/data/certs/{{cert_id}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{ACCESS_TOKEN}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
