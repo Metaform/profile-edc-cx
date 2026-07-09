@@ -1,0 +1,23 @@
+meta {
+  name: Bdrs Directory
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8081/api/management/bpn-directory
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "did": "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx",
+    "bpn": "BPNL01234567891j2"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

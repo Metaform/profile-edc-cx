@@ -19,6 +19,7 @@
 
 {{- if .Values.seedJobs.tractusxSeed.enabled }}
 {{- $seed := .Values.seedJobs.tractusxSeed }}
+{{- $dpKeys := $seed.vaults.connector.dataplaneKeys }}
 {{- $connectorVault := $seed.vaults.connector.address | default (printf "http://%s:8200" (include "jadtx.fqdn" (dict "svc" (printf "%s-vault" .Release.Name) "ctx" $))) }}
 {{- $platformVault := $seed.vaults.platform.address }}
 {{- $dbHost := $seed.db.host | default (include "jadtx.fqdn" (dict "svc" (printf "%s-postgresql" .Release.Name) "ctx" $)) }}
@@ -70,9 +71,37 @@ spec:
                 echo "Vault $VAULT is ready!"
               done
 
+        {{- if $dpKeys.enabled }}
+        # Generate the dataplane ed25519 keypair into the shared emptyDir. Side-effect-free,
+        # so it always runs; seed-vaults decides whether to actually write it to the vault.
+        - name: generate-keys
+          image: {{ .Values.seedJobs.images.openssl }}
+          volumeMounts:
+            - name: dataplane-keys
+              mountPath: /keys
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              openssl genpkey -algorithm ed25519 -out /keys/private.pem
+              openssl pkey -in /keys/private.pem -pubout -out /keys/public.pem
+              # openssl writes the private key as 0600 owned by this container's root user.
+              # seed-vaults (curl image) runs as a non-root user and must read it, so relax the
+              # perms — these are ephemeral dev keys in an emptyDir shared only within this pod.
+              chmod 0644 /keys/private.pem /keys/public.pem
+              echo "✓ ed25519 keypair generated"
+        {{- end }}
+
         # Write the two secrets into their respective vaults (KV v2, field "content").
         - name: seed-vaults
           image: {{ .Values.seedJobs.images.curl }}
+          {{- if $dpKeys.enabled }}
+          volumeMounts:
+            - name: dataplane-keys
+              mountPath: /keys
+              readOnly: true
+          {{- end }}
           env:
             - name: CONNECTOR_VAULT
               value: {{ $connectorVault | quote }}
@@ -98,6 +127,12 @@ spec:
             # compose the platform secret path <ctx>/identityhub/<alias>.
             - name: PARTICIPANT_CONTEXT_ID
               value: {{ $.Values.participant.context.id | quote }}
+            {{- if $dpKeys.enabled }}
+            - name: SIGNER_ALIAS
+              value: {{ $dpKeys.signerAlias | quote }}
+            - name: VERIFIER_ALIAS
+              value: {{ $dpKeys.verifierAlias | quote }}
+            {{- end }}
           command:
             - sh
             - -c
@@ -127,12 +162,39 @@ spec:
                 echo "✓ Secret '$ENGINE/$SECRET_PATH' written"
               }
 
+              {{- if $dpKeys.enabled }}
+              # JSON-escape a PEM file (newlines -> \n) so a multi-line key fits write_secret's
+              # JSON body. PEM contains no '"' or '\', so only newlines need escaping.
+              json_escape_file() { awk 'BEGIN{ORS=""} {print $0 "\\n"}' "$1"; }
+              {{- end }}
+
               echo "================================================"
               echo "Seeding vault secrets"
               echo "================================================"
               write_secret "$CONNECTOR_VAULT" "$CONNECTOR_TOKEN" "$CONNECTOR_ENGINE" "$CONNECTOR_ALIAS" "$CONNECTOR_CONTENT"
               # Platform vault: secret path is composed <participant-context-id>/identityhub/<alias>.
               write_secret "$PLATFORM_VAULT" "$PLATFORM_TOKEN" "$PLATFORM_ENGINE" "${PARTICIPANT_CONTEXT_ID}/identityhub/${PLATFORM_ALIAS}" "$PLATFORM_CONTENT"
+              {{- if $dpKeys.enabled }}
+              # Dataplane ed25519 keypair -> connector vault. Generate-once: skip only if the
+              # signer alias already holds NON-EMPTY content (a bare "exists" check would let a
+              # prior broken/empty write stick forever). KV v2 read nests the value at
+              # .data.data.content; extract it (PEM has no '"', so [^"]* is safe).
+              do_curl -H "X-Vault-Token: $CONNECTOR_TOKEN" "$CONNECTOR_VAULT/v1/$CONNECTOR_ENGINE/data/$SIGNER_ALIAS"
+              EXISTING_KEY=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"content":"\([^"]*\)".*/\1/p')
+              if [ "$RESP_STATUS" -eq 200 ] && [ -n "$EXISTING_KEY" ]; then
+                echo "⚠ dataplane keypair already present ($SIGNER_ALIAS), skipping generation"
+              else
+                SIGNER_CONTENT=$(json_escape_file /keys/private.pem)
+                VERIFIER_CONTENT=$(json_escape_file /keys/public.pem)
+                # Fail loudly rather than storing an empty secret (e.g. unreadable key file).
+                if [ -z "$SIGNER_CONTENT" ] || [ -z "$VERIFIER_CONTENT" ]; then
+                  echo "ERROR: generated key content is empty (unreadable or missing /keys/*.pem)"
+                  exit 1
+                fi
+                write_secret "$CONNECTOR_VAULT" "$CONNECTOR_TOKEN" "$CONNECTOR_ENGINE" "$SIGNER_ALIAS" "$SIGNER_CONTENT"
+                write_secret "$CONNECTOR_VAULT" "$CONNECTOR_TOKEN" "$CONNECTOR_ENGINE" "$VERIFIER_ALIAS" "$VERIFIER_CONTENT"
+              fi
+              {{- end }}
               echo "✓ Vault seeding complete"
       containers:
         # Run the configured DB insert(s) once postgres is accepting connections.
@@ -178,4 +240,10 @@ spec:
               echo "✓ Statement {{ $i }} executed"
               {{- end }}
               echo "✓ DB seeding complete"
+      {{- if $dpKeys.enabled }}
+      volumes:
+        # Shares the generated dataplane keypair from generate-keys to seed-vaults.
+        - name: dataplane-keys
+          emptyDir: {}
+      {{- end }}
 {{- end }}

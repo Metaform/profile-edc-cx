@@ -1,6 +1,5 @@
 meta {
   name: Prepare Tractusx Participant
-  seq: 4
 }
 
 headers {
@@ -9,4 +8,10 @@ headers {
 
 auth {
   mode: inherit
+}
+
+vars:pre-request {
+  ASSET_ID: tipycode
+  POLICY_DEF_ID: policy-def
+  CONTRACT_DEF_ID: contract-def
 }

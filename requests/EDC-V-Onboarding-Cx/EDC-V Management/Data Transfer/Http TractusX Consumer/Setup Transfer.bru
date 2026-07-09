@@ -1,11 +1,11 @@
 meta {
   name: Setup Transfer
   type: http
-  seq: 4
+  seq: 3
 }
 
 post {
-  url: {{cpBaseUrl}}/v5beta/participants/{{consumer_id}}/transferprocesses
+  url: {{txBaseUrl}}/v4beta/transferprocesses
   body: json
   auth: inherit
 }
@@ -16,8 +16,8 @@ body:json {
       "https://w3id.org/edc/connector/management/v2"
     ],
     "@type": "TransferRequest",
-    "protocol": "http-dsp-profile-2025-1",
-    "counterPartyAddress": "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/{{provider_id}}/http-dsp-profile-2025-1",
+    "protocol": "dataspace-protocol-http:2025-1",
+    "counterPartyAddress": "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/{{provider_id}}/cx-neptune",
     "contractId": "{{AGREEMENT_ID}}",
     "transferType": "HttpData-PULL"
   }

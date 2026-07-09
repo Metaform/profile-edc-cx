@@ -16,12 +16,14 @@ body:json {
       "https://w3id.org/edc/connector/management/v2"
     ],
     "@type": "Asset",
-    "@id": "{{ASSET_CERT_ID}}",
+    "@id": "{{ASSET_ID}}",
+    "dataAddress": {
+      "@type": "DataAddress",
+      "type": "HttpData",
+      "baseUrl": "https://mycorp.org/api"
+    },
     "properties": {
       "description": "This asset requires the Membership credential to access"
-    },
-    "privateProperties": {
-      "permission": "{{ASSET_PERMISSION}}"
     }
   }
 }

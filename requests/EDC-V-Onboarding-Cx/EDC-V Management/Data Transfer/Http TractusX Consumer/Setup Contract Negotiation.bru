@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{cpBaseUrl}}/v5beta/participants/{{consumer_id}}/contractnegotiations
+  url: {{txBaseUrl}}/v4beta/contractnegotiations
   body: json
   auth: inherit
 }
@@ -13,11 +13,12 @@ post {
 body:json {
   {
     "@context": [
-      "https://w3id.org/edc/connector/management/v2"
+      "https://w3id.org/edc/connector/management/v2",
+      "https://w3id.org/catenax/2025/9/policy/context.jsonld"
     ],
     "@type": "ContractRequest",
-    "protocol": "http-dsp-profile-2025-1",
-    "counterPartyAddress": "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/{{provider_id}}/http-dsp-profile-2025-1",
+    "protocol": "dataspace-protocol-http:2025-1",
+    "counterPartyAddress": "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/{{provider_id}}/cx-neptune",
     "policy": {
       "@id": "{{POLICY_ID}}",
       "@type": "Offer",
@@ -28,7 +29,7 @@ body:json {
           "action": "use",
           "constraint": [
             {
-              "leftOperand": "MembershipCredential",
+              "leftOperand": "Membership",
               "operator": "eq",
               "rightOperand": "active"
             }

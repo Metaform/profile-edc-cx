@@ -1,11 +1,11 @@
 meta {
   name: Create Policy
   type: http
-  seq: 4
+  seq: 6
 }
 
 post {
-  url: {{cpBaseUrl}}/v5beta/participants/{{provider_id}}/policydefinitions
+  url: {{txBaseUrl}}/v4beta/policydefinitions
   body: json
   auth: inherit
 }
@@ -22,7 +22,7 @@ body:json {
       "@type": "Set",
       "permission": [
         {
-          "action": "use",
+          "action": "access",
           "constraint" : [
             {
               "leftOperand": "Membership",

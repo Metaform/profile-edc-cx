@@ -184,6 +184,27 @@ spec:
                 "url": "https://w3id.org/catenax/2025/9/policy/context.jsonld"
               }
               JSON
+              seed "JSON-LD context tx auth" "jsonldcontexts" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "CachedJsonLdContext",
+                "url": "https://w3id.org/tractusx/auth/v1.0.0",
+                "content":{
+                    "@context": {
+                      "@version": 1.1,
+                      "@protected": true,
+                      "tx-auth": "https://w3id.org/tractusx/auth/",
+                      "refreshToken": "tx-auth:refreshToken",
+                      "refreshEndpoint": "tx-auth:refreshEndpoint",
+                      "refreshAudience": "tx-auth:refreshAudience",
+                      "audience": "tx-auth:audience",
+                      "expiresIn": "tx-auth:expiresIn"
+                    }
+                }
+              }
+              JSON
 
               echo ""
               echo "================================================"

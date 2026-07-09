@@ -59,6 +59,16 @@ tractusx-connector:
     env:
       EDC_IAM_DID_WEB_USE_HTTPS: false
       EDC_IAM_CREDENTIAL_REVOCATION_MIMETYPE: application/json
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_BPN_ALIAS: "org.eclipse.dspace.dcp.vc.type"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_BPN_TYPE: "BpnCredential"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_BPN_OPERATION: "read"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_MEMBERSHIP_ALIAS: "org.eclipse.dspace.dcp.vc.type"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_MEMBERSHIP_TYPE: "MembershipCredential"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_MEMBERSHIP_OPERATION: "read"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_GOV_ALIAS: "org.eclipse.dspace.dcp.vc.type"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_GOV_TYPE: "DataExchangeGovernanceCredential"
+      TX_EDC_IAM_IATP_DEFAULT-SCOPES_GOV_OPERATION: "read"
+
     bdrs:
       server:
         # Points at the in-cluster bdrs-server deployed by the `bdrs-server:`
@@ -86,11 +96,13 @@ tractusx-connector:
           id: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx"
           secret_alias: sts-secret-alias
   dataplane:
+    env:
+      EDC_IAM_DID_WEB_USE_HTTPS: false
     token:
       signer:
-        privatekey_alias: changeme-dataplane-signer-alias
+        privatekey_alias: dataplane-signer-alias
       verifier:
-        publickey_alias: changeme-dataplane-verifier-alias
+        publickey_alias: dataplane-verifier-alias
 
 # Values for the upstream bdrs-server-memory subchart are set under the
 # `bdrs-server-memory:` key. This deploys the BPN-DID Resolution Service that the
@@ -107,10 +119,12 @@ bdrs-server-memory:
   fullnameOverride: tractusx-bdrs-server
 
   server:
+    env:
+      EDC_IAM_DID_WEB_USE_HTTPS: false
     # Must not be empty or templating fails. Set to the dataspace issuer DID(s)
     # whose membership/BPN credentials this BDRS should trust.
     trustedIssuers:
-      - changeme-trusted-issuer-did
+      - "did:web:issuerservice.edc-v.svc.cluster.local%3A10016:issuer"
 
 seedJobs:
   # ServiceAccount created by the platform chart; it has a jwtlet mapping to the
@@ -124,6 +138,8 @@ seedJobs:
     curl: curlimages/curl:latest
     # psql client (also provides pg_isready) for the DB-insert step.
     psql: postgres:16-alpine
+    # openssl CLI for generating the dataplane ed25519 keypair (curl image has no openssl).
+    openssl: alpine/openssl:latest
   # Seeds vault secrets and a DB row required by the tractusx-connector.
   tractusxSeed:
     enabled: true
@@ -140,6 +156,15 @@ seedJobs:
         # tractusx-connector.dataplane.token.signer.privatekey_alias above.
         alias: sts-secret-alias
         content: test
+        # ed25519 keypair for the dataplane token signer/verifier. The seed job generates
+        # the keypair (openssl) and writes the PEM keys into this connector vault under the
+        # aliases below. Generate-once: if signerAlias already exists the job skips it, so the
+        # keypair stays stable across helm upgrades. Aliases MUST match
+        # tractusx-connector.dataplane.token.signer.privatekey_alias / verifier.publickey_alias.
+        dataplaneKeys:
+          enabled: true
+          signerAlias: dataplane-signer-alias
+          verifierAlias: dataplane-verifier-alias
       # Vault B: the platform/identityhub vault (deployed by core-platform-distribution,
       # outside this chart). There is no in-repo service name, so this address is REQUIRED.
       platform:
