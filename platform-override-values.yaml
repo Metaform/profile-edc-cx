@@ -1,0 +1,8 @@
+edc:
+  siglet:
+    transferTypes:
+      - transferType: "HttpData-PULL"
+        endpointType: "https://w3id.org/idsa/v4.1/HTTP"
+        endpoint: "http://provider:8080/data"
+        tokenSource: "provider"
+        txRenewalSupport: true
