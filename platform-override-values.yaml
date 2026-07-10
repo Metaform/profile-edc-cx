@@ -1,4 +1,11 @@
 edc:
+  identityhub:
+    scopes:
+      - name: membership
+        pattern: 'org\.eclipse\.tractusx\.vc\.type:(.+):(read|\*|all)'
+        leftOperand: "verifiableCredential.credential.type"
+        operator: "contains"
+        rightOperand: "$1"
   siglet:
     transferTypes:
       - transferType: "HttpData-PULL"

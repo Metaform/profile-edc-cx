@@ -59,16 +59,6 @@ tractusx-connector:
     env:
       EDC_IAM_DID_WEB_USE_HTTPS: false
       EDC_IAM_CREDENTIAL_REVOCATION_MIMETYPE: application/json
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_BPN_ALIAS: "org.eclipse.dspace.dcp.vc.type"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_BPN_TYPE: "BpnCredential"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_BPN_OPERATION: "read"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_MEMBERSHIP_ALIAS: "org.eclipse.dspace.dcp.vc.type"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_MEMBERSHIP_TYPE: "MembershipCredential"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_MEMBERSHIP_OPERATION: "read"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_GOV_ALIAS: "org.eclipse.dspace.dcp.vc.type"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_GOV_TYPE: "DataExchangeGovernanceCredential"
-      TX_EDC_IAM_IATP_DEFAULT-SCOPES_GOV_OPERATION: "read"
-
     bdrs:
       server:
         # Points at the in-cluster bdrs-server deployed by the `bdrs-server:`
