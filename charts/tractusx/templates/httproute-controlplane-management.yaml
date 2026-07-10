@@ -43,11 +43,6 @@ spec:
             path:
               type: ReplacePrefixMatch
               replacePrefixMatch: /management
-        - type: ExtensionRef
-          extensionRef:
-            group: traefik.io
-            kind: Middleware
-            name: jwt-auth-management-api
       backendRefs:
         - name: {{ .Values.route.backend.service }}
           port: {{ .Values.route.backend.managementPort }}
