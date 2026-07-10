@@ -60,7 +60,7 @@ First, deploy the CPD platform itself:
 
 ```bash
 helm upgrade --install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
-    --version 0.0.5 \
+    --version 0.0.6 \
     --namespace edc-v --create-namespace \
     --wait --timeout 15m
 ```
@@ -125,6 +125,19 @@ exercises the profile end to end.
 `bdrs-server-memory` `0.6.0` (an in-cluster, in-memory BPN-DID Resolution Service). It lets a
 Tractus-X EDC connector join the same dataspace and interoperate with the cx-profile-configured
 EDC-V connector.
+
+When running  the Tractus-X Connector integration the  we need to change a bit the core-platform
+to configure the siglet with the tractus-x renewal protocol support:
+
+```bash
+helm upgrade -install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
+		--version 0.0.6 \
+    -f platform-override-values.yaml \
+		--namespace edc-v --create-namespace --wait --timeout 15m
+```
+
+
+Then install the Tractus-X connector:
 
 ```bash
 # set the changeme-* values first: participant.context.id,

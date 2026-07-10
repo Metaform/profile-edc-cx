@@ -23,6 +23,9 @@
 {{- $connectorVault := $seed.vaults.connector.address | default (printf "http://%s:8200" (include "jadtx.fqdn" (dict "svc" (printf "%s-vault" .Release.Name) "ctx" $))) }}
 {{- $platformVault := $seed.vaults.platform.address }}
 {{- $dbHost := $seed.db.host | default (include "jadtx.fqdn" (dict "svc" (printf "%s-postgresql" .Release.Name) "ctx" $)) }}
+{{- $bdrs := $seed.bdrs }}
+{{- $bdrsName := index .Values "bdrs-server-memory" "fullnameOverride" }}
+{{- $bdrsUrl := $bdrs.url | default (printf "http://%s:8081/api/management/bpn-directory" (include "jadtx.fqdn" (dict "svc" $bdrsName "ctx" $))) }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -196,6 +199,58 @@ spec:
               fi
               {{- end }}
               echo "✓ Vault seeding complete"
+
+        {{- if $bdrs.enabled }}
+        # Seed BPN->DID directory entries into the in-cluster BDRS management API.
+        - name: seed-bdrs
+          image: {{ .Values.seedJobs.images.curl }}
+          env:
+            - name: BDRS_URL
+              value: {{ $bdrsUrl | quote }}
+            - name: BDRS_API_KEY
+              value: {{ $bdrs.apiKey | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              # Executes a curl request, storing body in RESP_BODY and status in RESP_STATUS.
+              do_curl() {
+                RESP=$(curl -s -w "\n%{http_code}" "$@")
+                RESP_STATUS=$(printf '%s\n' "$RESP" | tail -1)
+                RESP_BODY=$(printf '%s\n' "$RESP" | sed '$d')
+              }
+
+              # post_entry <label> <json-body>: POST an entry, fail loudly on HTTP >= 400.
+              post_entry() {
+                echo "POST BDRS entry $1 -> $BDRS_URL"
+                do_curl -X POST "$BDRS_URL" \
+                  -H "X-API-KEY: $BDRS_API_KEY" \
+                  -H "Content-Type: application/json" \
+                  -d "$2"
+                if [ "$RESP_STATUS" -ge 400 ]; then
+                  echo "ERROR: BDRS POST $1 failed (HTTP $RESP_STATUS): $RESP_BODY"
+                  exit 1
+                fi
+                echo "✓ BDRS entry $1 created (HTTP $RESP_STATUS)"
+              }
+
+              # Wait until the BDRS management API answers (any HTTP response = reachable).
+              until curl -s -o /dev/null "$BDRS_URL"; do
+                echo "Waiting for BDRS at $BDRS_URL to be ready..."
+                sleep 5
+              done
+              echo "BDRS is ready!"
+
+              echo "================================================"
+              echo "Seeding BDRS BPN directory entries"
+              echo "================================================"
+              post_entry 1 '{"did":"did:web:identityhub.edc-v.svc.cluster.local%3A7083:consumer","bpn":"BPNL01234567891j0"}'
+              post_entry 2 '{"did":"did:web:identityhub.edc-v.svc.cluster.local%3A7083:provider","bpn":"BPNL01234567891j1"}'
+              post_entry 3 '{"did":"did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx","bpn":"BPNL01234567891j2"}'
+              echo "✓ BDRS seeding complete"
+        {{- end }}
       containers:
         # Run the configured DB insert(s) once postgres is accepting connections.
         - name: seed-db

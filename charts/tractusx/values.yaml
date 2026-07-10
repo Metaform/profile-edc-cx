@@ -177,6 +177,16 @@ seedJobs:
         # (the participant context id and the /identityhub/ segment are prepended in the job).
         alias: sts-secret-alias
         content: test
+    # BDRS (BPN-DID Resolution Service) management API seeding. Posts BPN->DID
+    # directory entries into the in-cluster bdrs-server management endpoint.
+    bdrs:
+      enabled: true
+      # Management API. Leave url empty to derive it from the bdrs-server service
+      # (bdrs-server-memory.fullnameOverride below) at
+      # http://<fqdn>:8081/api/management/bpn-directory.
+      url: ""
+      # X-API-KEY header value guarding the BDRS management API. Override per env.
+      apiKey: password
     db:
       # Postgres from the tractusx-connector subchart. Service name is release-derived;
       # leave host empty to default to <release>-postgresql in the template.
