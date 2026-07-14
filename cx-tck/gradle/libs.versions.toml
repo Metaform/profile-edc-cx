@@ -1,0 +1,57 @@
+[metadata]
+format.version = "1.1"
+
+[versions]
+# shared, protocol-agnostic tck harness (github.com/eclipse-dataspacetck)
+tck = "1.2.2"
+# published protocol tcks reused by cx-tck
+dsp = "1.0.2-SNAPSHOT"
+dcp = "1.0.3-SNAPSHOT"
+# supporting libraries - kept in sync with the dsp-tck / dcp-tck catalogs
+assertj = "3.27.7"
+awaitility = "4.3.0"
+junit = "6.1.1"
+jackson = "2.22.1"
+jakarta-json = "2.1.3"
+parsson = "1.1.9"
+okhttp = "5.4.0"
+mockito = "5.23.0"
+nimbus = "10.9"
+titanium = "1.7.0"
+schema-validator = "3.0.6"
+
+[libraries]
+# shared harness
+tck-common-api = { module = "org.eclipse.dataspacetck.common:core-api", version.ref = "tck" }
+tck-core = { module = "org.eclipse.dataspacetck.common:core", version.ref = "tck" }
+tck-runtime = { module = "org.eclipse.dataspacetck.common:tck-runtime", version.ref = "tck" }
+
+# dsp-tck (exchange protocol) - the catalog test lives in dsp-catalog's src/main
+dsp-api = { module = "org.eclipse.dataspacetck.dsp:dsp-api", version.ref = "dsp" }
+dsp-system = { module = "org.eclipse.dataspacetck.dsp:dsp-system", version.ref = "dsp" }
+dsp-catalog = { module = "org.eclipse.dataspacetck.dsp:dsp-catalog", version.ref = "dsp" }
+
+# dcp-tck (identity) - the BaseAssembly / ServiceAssembly identity fixtures
+dcp-api = { module = "org.eclipse.dataspacetck.dcp:dcp-api", version.ref = "dcp" }
+dcp-system = { module = "org.eclipse.dataspacetck.dcp:dcp-system", version.ref = "dcp" }
+
+# supporting libraries
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-jsonp = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jakarta-jsonp", version.ref = "jackson" }
+json-api = { module = "jakarta.json:jakarta.json-api", version.ref = "jakarta-json" }
+parsson = { module = "org.eclipse.parsson:parsson", version.ref = "parsson" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-platform-engine = { module = "org.junit.platform:junit-platform-suite-engine", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+nimbus-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbus" }
+titanium = { module = "com.apicatalog:titanium-json-ld", version.ref = "titanium" }
+schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "schema-validator" }
+
+[plugins]
+shadow = { id = "com.gradleup.shadow", version = "9.5.1" }
+docker = { id = "com.bmuschko.docker-remote-api", version = "10.0.0" }
+tck-build = { id = "org.eclipse.dataspacetck.build.tck-build", version = "1.2.2" }
