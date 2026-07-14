@@ -45,7 +45,10 @@ class CxTckSuiteRemoteTest {
                 .property("CX_CAT_01_01_DATASETID", "cert_asset")
                 .property("CX_CAT_01_04_DATASETID", "bpn_asset")
                 .property("CX_CAT_01_05_DATASETID", "bpn_asset")
-                .addPackage("org.eclipse.dataspacetck.cx.verification")
+                .property("CX_FLOW_01_01_DATASETID", "cert_asset")
+                .property("CX_FLOW_01_01_FORMAT", "HttpData-PULL")
+                .property("CX_FLOW_01_02_DATASETID", "gov_asset")
+                .addPackage("org.eclipse.dataspacetck.cx.verification.flow")
                 .monitor(new ConsoleMonitor(false, true))
                 .build().execute();
 

@@ -26,6 +26,7 @@ import org.eclipse.dataspacetck.cx.dcp.annotation.BpnNumber;
 import org.eclipse.dataspacetck.cx.dcp.annotation.ContractVersion;
 import org.eclipse.dataspacetck.cx.dcp.annotation.DcpScope;
 import org.eclipse.dataspacetck.cx.dsp.catalog.client.CxDspCatalogClient;
+import org.eclipse.dataspacetck.cx.runtime.CxRuntime;
 import org.eclipse.dataspacetck.cx.system.assembly.CxDcpAssembly;
 import org.eclipse.dataspacetck.cx.system.dsp.catalog.http.CxDspCatalogHttpClient;
 import org.eclipse.dataspacetck.cx.system.dsp.catalog.local.CxDspCatalogLocalClient;
@@ -125,6 +126,19 @@ public class CxSystemLauncher implements SystemLauncher {
                 var assembly = getOrInitServiceAssembly(configuration.getScopeId(), configuration, resolver);
                 assembly.issueCxCredentials(baseAssembly, Arrays.stream(credentialTypes).toList(), bpn, contractVersion);
             }
+
+            // Contract-negotiation and transfer-process messages are dispatched by the dsp-tck pipelines through the
+            // static HttpFunctions authorization interceptor (unlike the catalog client, which carries its own
+            // per-client interceptor). A test that drives those flows declares a method-level @DcpScope; register a
+            // freshly minted DCP self-issued token as the global DSP authorization header so every negotiation/transfer
+            // request is authorized with the Catena-X identity.
+            getAnnotation(DcpScope.class, configuration).ifPresent(scope -> {
+                ensureIdentity(configuration, resolver);
+                HttpFunctions.registerAuthorizationInterceptor(() -> {
+                    var idToken = fetchSelfSignedToken(configuration.getScopeId(), configuration, resolver, Arrays.asList(scope.value()));
+                    return "Bearer " + idToken;
+                });
+            });
         }
     }
 
@@ -134,6 +148,7 @@ public class CxSystemLauncher implements SystemLauncher {
         dspLauncher.start(configuration);
 
         localConnector = configuration.getPropertyAsBoolean(LOCAL_CONNECTOR_CONFIG, false);
+        CxRuntime.setLocalConnector(localConnector);
         providerDid = configuration.getPropertyAsString(PROVIDER_DID_CONFIG, null);
         holderIdentifier = configuration.getPropertyAsString(CX_TCK_PREFIX + ".bpn", "cx-tck-holder");
 

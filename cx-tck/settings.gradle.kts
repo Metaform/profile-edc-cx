@@ -26,5 +26,6 @@ pluginManagement {
 
 include("cx-system")
 include("cx-catalog")
+include("cx-flow")
 include("cx-tck")
 include("cx-api")

@@ -30,6 +30,9 @@ tck-runtime = { module = "org.eclipse.dataspacetck.common:tck-runtime", version.
 dsp-api = { module = "org.eclipse.dataspacetck.dsp:dsp-api", version.ref = "dsp" }
 dsp-system = { module = "org.eclipse.dataspacetck.dsp:dsp-system", version.ref = "dsp" }
 dsp-catalog = { module = "org.eclipse.dataspacetck.dsp:dsp-catalog", version.ref = "dsp" }
+# these two ship the negotiation/transfer JSON schemas (/negotiation/*.json, /transfer/*.json) used for message validation
+dsp-contract-negotiation = { module = "org.eclipse.dataspacetck.dsp:dsp-contract-negotiation", version.ref = "dsp" }
+dsp-transfer-process = { module = "org.eclipse.dataspacetck.dsp:dsp-transfer-process", version.ref = "dsp" }
 
 # dcp-tck (identity) - the BaseAssembly / ServiceAssembly identity fixtures
 dcp-api = { module = "org.eclipse.dataspacetck.dcp:dcp-api", version.ref = "dcp" }
