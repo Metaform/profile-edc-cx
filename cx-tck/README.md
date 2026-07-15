@@ -41,7 +41,8 @@ launcher, so cx-tck provides a composing one:
 | Module       | Purpose                                                                    |
 |--------------|----------------------------------------------------------------------------|
 | `cx-system`  | `CxSystemLauncher` — the composing launcher (DSP exchange + DCP identity).  |
-| `cx-catalog` | The test cases (`CxCatalog01Test`), discovered by package scan.            |
+| `cx-catalog` | The catalog test cases (`CxCatalog01Test`), discovered by package scan.     |
+| `cx-flow`    | The end-to-end flow test cases (`CxFlow01Test`): catalog → negotiation → transfer. |
 | `cx-runtime` | The runnable suite (`CxTckSuite`), packaged as `cx-tck-runtime.jar`.        |
 
 ## Building
@@ -80,8 +81,9 @@ presentation-query callback. The
 
 ## Status
 
-Catalog requests (`CxCatalog01Test`) combining DSP exchange with DCP identity. The current
-mandatory test cases are:
+Two suites of mandatory test cases, both combining DSP exchange with DCP identity.
+
+### Catalog requests (`CxCatalog01Test`)
 
 | Test ID        | Verifies                                                                          | Expected result |
 |----------------|-----------------------------------------------------------------------------------|-----------------|
@@ -91,6 +93,22 @@ mandatory test cases are:
 | `CX_CAT:01-04` | Catalog request against a dataset carrying a **BPN access restriction**              | Catalog returned |
 | `CX_CAT:01-05` | Catalog request that **filters out** a BPN-restricted dataset for a non-matching BPN | Restricted dataset filtered out |
 
-Follow-ups: per-request token minting, contract-negotiation / transfer flows, and the remaining
-Catena-X profile specifics (CEL policy operands, JSON-Schema policy validation) described in
+### End-to-end flows (`CxFlow01Test`)
+
+Whole-flow tests that chain **catalog → contract negotiation → transfer** in a single exchange,
+driven by the TCK as the consumer against the connector under test as the provider. The offer that
+is negotiated is the **real offer extracted from the catalog** response (`CxFunctions`), and the
+negotiated agreement id is carried into the transfer.
+
+| Test ID         | Verifies                                                                                                                     | Expected result |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| `CX_FLOW:01-01` | Catalog fetch → contract negotiation to `FINALIZED` → transfer to `STARTED`, extracting the data address from the `TransferStartMessage` | Transfer started; data address present |
+| `CX_FLOW:01-02` | Contract request for an offer whose contract policy the identity cannot satisfy (non-matching `DataExchangeGovernance` contract version) | `401` on the contract request |
+
+`CX_FLOW:01-02` exercises real contract-policy enforcement, so it is **skipped in the local
+self-test** (the in-memory connector does not evaluate contract policy) and runs only against a real
+connector under test.
+
+Follow-ups: per-request token minting, transfer completion, and the remaining Catena-X profile
+specifics (CEL policy operands, JSON-Schema policy validation) described in
 [`../neptune.md`](../neptune.md).
