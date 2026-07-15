@@ -72,7 +72,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
  * simulated data address carries no renewal properties, so both methods abort in local mode.
  */
 @Tag("cx-flow")
-@Tag("cx-renewa-flow")
+@Tag("cx-renewal-flow")
 @Tag("base-compliance")
 @DisplayName("CX_RENEWAL_FLOW_01: catalog -> negotiation -> transfer -> OAuth2 token renewal")
 public class CxRenewalFlow01Test extends AbstractCxFlowTest {

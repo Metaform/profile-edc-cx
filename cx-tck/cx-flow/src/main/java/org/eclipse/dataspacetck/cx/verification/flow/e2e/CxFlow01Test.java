@@ -12,7 +12,7 @@
  *
  */
 
-package org.eclipse.dataspacetck.cx.verification.flow;
+package org.eclipse.dataspacetck.cx.verification.flow.e2e;
 
 import org.eclipse.dataspacetck.api.system.MandatoryTest;
 import org.eclipse.dataspacetck.api.system.TestSequenceDiagram;
@@ -20,6 +20,7 @@ import org.eclipse.dataspacetck.cx.dcp.annotation.ContractVersion;
 import org.eclipse.dataspacetck.cx.dcp.annotation.DcpScope;
 import org.eclipse.dataspacetck.cx.dsp.catalog.client.CxDspCatalogClient;
 import org.eclipse.dataspacetck.cx.runtime.CxRuntime;
+import org.eclipse.dataspacetck.cx.verification.flow.AbstractCxFlowTest;
 import org.eclipse.dataspacetck.dcp.system.annotation.IssueCredentials;
 import org.eclipse.dataspacetck.dsp.verification.cn.ProviderActions;
 import org.junit.jupiter.api.DisplayName;
