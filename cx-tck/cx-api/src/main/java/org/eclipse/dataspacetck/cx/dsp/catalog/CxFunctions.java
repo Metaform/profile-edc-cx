@@ -197,10 +197,9 @@ public final class CxFunctions {
      */
     private static String matchProperty(Map<String, Object> dataAddress, String name) {
         return extractEndpointProperties(dataAddress).entrySet().stream()
-                .filter(entry -> entry.getKey() != null
-                        && (entry.getKey().equals(name)
-                        || entry.getKey().endsWith("/" + name)
-                        || entry.getKey().endsWith("#" + name)))
+                .filter(entry -> entry.getKey() != null && (entry.getKey().equals(name) ||
+                        entry.getKey().endsWith("/" + name) ||
+                        entry.getKey().endsWith("#" + name)))
                 .map(Map.Entry::getValue)
                 .filter(Objects::nonNull)
                 .findFirst()

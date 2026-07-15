@@ -16,7 +16,6 @@ package org.eclipse.dataspacetck.cx.suite;
 
 import org.eclipse.dataspacetck.core.system.ConsoleMonitor;
 import org.eclipse.dataspacetck.cx.system.CxSystemLauncher;
-import org.eclipse.dataspacetck.dsp.system.DspSystemLauncher;
 import org.eclipse.dataspacetck.runtime.TckRuntime;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.dataspacetck.core.api.system.SystemsConstants.TCK_LAUNCHER;
 
 class CxTckSuiteTest {
-
+    
     @Test
     void verifyTestSuite() {
         var result = TckRuntime.Builder.newInstance()

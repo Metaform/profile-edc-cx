@@ -165,8 +165,8 @@ public class CxSystemLauncher implements SystemLauncher {
     }
 
     private <T> boolean localProvides(Class<T> type) {
-        return type.isAssignableFrom(CxDspCatalogClient.class)
-                || type.isAssignableFrom(SelfIssuedTokenProvider.class);
+        return type.isAssignableFrom(CxDspCatalogClient.class) ||
+                type.isAssignableFrom(SelfIssuedTokenProvider.class);
     }
 
     @Override
@@ -204,11 +204,6 @@ public class CxSystemLauncher implements SystemLauncher {
         dspLauncher.close();
     }
 
-    /**
-     * Mints a DCP self-issued (ID) token following the dcp-tck verifier pattern: signed by the bearer's own key with
-     * {@code iss == sub == holderDid}, the connector as {@code aud}, and the STS access token carried in the
-     * {@code token} claim.
-     */
 
     /**
      * Materializes the per-scope DCP fixtures (registering the DID/CredentialService/STS handlers on the callback
@@ -276,6 +271,11 @@ public class CxSystemLauncher implements SystemLauncher {
         return new CxDspCatalogHttpClient(remoteClient);
     }
 
+    /**
+     * Mints a DCP self-issued (ID) token following the dcp-tck verifier pattern: signed by the bearer's own key with
+     * {@code iss == sub == holderDid}, the connector as {@code aud}, and the STS access token carried in the
+     * {@code token} claim.
+     */
     private String createSelfIssuedToken(String holderDid, String audience, String accessToken, KeyService keyService) {
         var claims = new JWTClaimsSet.Builder()
                 .issuer(holderDid)

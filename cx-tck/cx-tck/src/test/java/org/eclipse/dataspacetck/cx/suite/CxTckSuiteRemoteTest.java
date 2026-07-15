@@ -17,6 +17,7 @@ package org.eclipse.dataspacetck.cx.suite;
 import org.eclipse.dataspacetck.core.system.ConsoleMonitor;
 import org.eclipse.dataspacetck.cx.system.CxSystemLauncher;
 import org.eclipse.dataspacetck.runtime.TckRuntime;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +25,20 @@ import static org.eclipse.dataspacetck.core.api.system.SystemsConstants.TCK_LAUN
 
 class CxTckSuiteRemoteTest {
 
-    //    @Disabled
+    public static final String KEY = """
+            {
+              "kty": "EC",
+              "crv": "P-256",
+              "x": "deK8PmxHcQhUxgtyd2Cq-Edcif1APkxohKzS7FZsBWo",
+              "y": "EhUBt_1EtjN4xCBAG5HQlGzmizbyLRY6kDRhJPKkoeo",
+              "d": "C35yL0bFQgP2S1m3Wr5hDMV6iO8I1zCYNMGstdYAaz4",
+              "kid": "test-1",
+              "use": "sig",
+              "alg": "ES256"
+            }
+            """;
+
+    @Disabled
     @Test
     void verifyTestSuite() {
         var result = TckRuntime.Builder.newInstance()
@@ -36,8 +50,8 @@ class CxTckSuiteRemoteTest {
                 .property("dataspacetck.dsp.connector.agent.id", "urn:connector:provider")
                 .property("dataspacetck.did.issuer", "did:web:cx-tck.edc-v.svc.cluster.local:issuer")
                 .property("dataspacetck.did.holder", "did:web:cx-tck.edc-v.svc.cluster.local:cx-tck")
-                .property("dataspacetck.key.holder", "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"deK8PmxHcQhUxgtyd2Cq-Edcif1APkxohKzS7FZsBWo\",\"y\":\"EhUBt_1EtjN4xCBAG5HQlGzmizbyLRY6kDRhJPKkoeo\",\"d\":\"C35yL0bFQgP2S1m3Wr5hDMV6iO8I1zCYNMGstdYAaz4\",\"kid\":\"test-1\",\"use\":\"sig\",\"alg\":\"ES256\"}")
-                .property("dataspacetck.key.issuer", "{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"deK8PmxHcQhUxgtyd2Cq-Edcif1APkxohKzS7FZsBWo\",\"y\":\"EhUBt_1EtjN4xCBAG5HQlGzmizbyLRY6kDRhJPKkoeo\",\"d\":\"C35yL0bFQgP2S1m3Wr5hDMV6iO8I1zCYNMGstdYAaz4\",\"kid\":\"test-1\",\"use\":\"sig\",\"alg\":\"ES256\"}")
+                .property("dataspacetck.key.holder", KEY)
+                .property("dataspacetck.key.issuer", KEY)
                 .property("dataspacetck.did.verifier", "did:web:identityhub.edc-v.svc.cluster.local%3A7083:provider")
                 .property("dataspacetck.callback.address", "http://cx-tck.edc-v.svc.cluster.local")
                 .property("dataspacetck.cx.bpn", "BPNL00000003TCK")
