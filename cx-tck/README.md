@@ -79,6 +79,28 @@ request authorized with a DCP self-issued token, and the connector verifies it v
 presentation-query callback. The
 [`tractusx`](../charts/tractusx) Helm chart in this repository deploys a suitable connector.
 
+### Trusted issuer
+
+The credentials the TCK presents (Membership, BPN and DataExchangeGovernance) are **issued and
+signed by an issuer embedded in the TCK itself**. Its DID is configured with:
+
+```properties
+dataspacetck.did.issuer=did:web:localhost%3A8083:issuer
+```
+
+If omitted, it is derived from `dataspacetck.callback.address` as `did:web:<host>:issuer`. The TCK
+hosts the corresponding `did:web` document (and its signing key) on the callback endpoint, so the
+connector under test can resolve the issuer DID and verify the credential signatures.
+
+For that verification to succeed, **the connector under test must be configured to trust this issuer
+DID** — add `dataspacetck.did.issuer` to the connector's list of **trusted issuers**. If the issuer
+is not trusted, the connector rejects the presented credentials and every test that relies on a
+credential (all catalog, flow and renewal tests) fails during identity verification.
+
+> When the TCK runs inside the cluster, the issuer DID uses the in-cluster callback host, e.g.
+> `did:web:cx-tck.edc-v.svc.cluster.local:issuer`. The value added to the connector's trusted
+> issuers must match exactly the `dataspacetck.did.issuer` the TCK is run with.
+
 ## Required policies
 
 To run the suite against a real connector under test, the datasets referenced by the tests must be
