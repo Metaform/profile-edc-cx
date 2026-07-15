@@ -17,7 +17,6 @@ package org.eclipse.dataspacetck.cx.suite;
 import org.eclipse.dataspacetck.core.system.ConsoleMonitor;
 import org.eclipse.dataspacetck.cx.system.CxSystemLauncher;
 import org.eclipse.dataspacetck.runtime.TckRuntime;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,7 +24,7 @@ import static org.eclipse.dataspacetck.core.api.system.SystemsConstants.TCK_LAUN
 
 class CxTckSuiteRemoteTest {
 
-    @Disabled
+    //    @Disabled
     @Test
     void verifyTestSuite() {
         var result = TckRuntime.Builder.newInstance()
@@ -48,7 +47,11 @@ class CxTckSuiteRemoteTest {
                 .property("CX_FLOW_01_01_DATASETID", "cert_asset")
                 .property("CX_FLOW_01_01_FORMAT", "HttpData-PULL")
                 .property("CX_FLOW_01_02_DATASETID", "gov_asset")
-                .addPackage("org.eclipse.dataspacetck.cx.verification.flow")
+                .property("CX_RENEWAL_FLOW_01_01_DATASETID", "gov_asset")
+                .property("CX_RENEWAL_FLOW_01_01_FORMAT", "HttpData-PULL")
+                .property("CX_RENEWAL_FLOW_01_02_DATASETID", "gov_asset")
+                .property("CX_RENEWAL_FLOW_01_02_FORMAT", "HttpData-PULL")
+                .addPackage("org.eclipse.dataspacetck.cx.verification")
                 .monitor(new ConsoleMonitor(false, true))
                 .build().execute();
 

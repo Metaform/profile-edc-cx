@@ -17,6 +17,7 @@ package org.eclipse.dataspacetck.cx.dsp.catalog;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.eclipse.dataspacetck.dsp.system.api.message.DcatConstants.DCAT_PROPERTY_DATASET_EXPANDED;
@@ -41,6 +42,11 @@ public final class CxFunctions {
     private static final String ODRL_NAMESPACE = "http://www.w3.org/ns/odrl/2/";
     private static final String ODRL_PROPERTY_HAS_POLICY_EXPANDED = ODRL_NAMESPACE + "hasPolicy";
     private static final String DSPACE_PROPERTY_AGREEMENT_EXPANDED = DSPACE_NAMESPACE + "agreement";
+
+    // Token Renewal profile endpoint-property names (dspace:name values carried in the data address)
+    private static final String REFRESH_ENDPOINT = "refreshEndpoint";
+    private static final String REFRESH_TOKEN = "refreshToken";
+    private static final String ACCESS_TOKEN = "authorization";
 
     private CxFunctions() {
     }
@@ -159,5 +165,45 @@ public final class CxFunctions {
             }
         }
         return result;
+    }
+
+    /**
+     * The Token Renewal profile {@code refreshEndpoint} of an expanded data address (the OAuth2 token endpoint the
+     * consumer calls to renew its access token), or {@code null} if the data address declares none.
+     */
+    public static String extractRefreshEndpoint(Map<String, Object> dataAddress) {
+        return matchProperty(dataAddress, REFRESH_ENDPOINT);
+    }
+
+    /**
+     * The Token Renewal profile {@code refreshToken} of an expanded data address (the OAuth2 refresh token presented in
+     * the renewal request), or {@code null} if the data address declares none.
+     */
+    public static String extractRefreshToken(Map<String, Object> dataAddress) {
+        return matchProperty(dataAddress, REFRESH_TOKEN);
+    }
+
+    /**
+     * The Token Renewal profile {@code refreshToken} of an expanded data address (the OAuth2 refresh token presented in
+     * the renewal request), or {@code null} if the data address declares none.
+     */
+    public static String extractAccessToken(Map<String, Object> dataAddress) {
+        return matchProperty(dataAddress, ACCESS_TOKEN);
+    }
+
+    /**
+     * Reads an endpoint property by name, tolerating a namespaced key: a connector under test may emit the property name
+     * verbatim ({@code refreshEndpoint}) or namespaced (e.g. {@code https://w3id.org/edc/v0.0.1/ns/refreshEndpoint}).
+     */
+    private static String matchProperty(Map<String, Object> dataAddress, String name) {
+        return extractEndpointProperties(dataAddress).entrySet().stream()
+                .filter(entry -> entry.getKey() != null
+                        && (entry.getKey().equals(name)
+                        || entry.getKey().endsWith("/" + name)
+                        || entry.getKey().endsWith("#" + name)))
+                .map(Map.Entry::getValue)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 }

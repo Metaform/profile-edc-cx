@@ -42,7 +42,7 @@ launcher, so cx-tck provides a composing one:
 |--------------|----------------------------------------------------------------------------|
 | `cx-system`  | `CxSystemLauncher` — the composing launcher (DSP exchange + DCP identity).  |
 | `cx-catalog` | The catalog test cases (`CxCatalog01Test`), discovered by package scan.     |
-| `cx-flow`    | The end-to-end flow test cases (`CxFlow01Test`): catalog → negotiation → transfer. |
+| `cx-flow`    | The end-to-end flow test cases: `CxFlow01Test` (catalog → negotiation → transfer) and `CxRenewalFlow01Test` (transfer → OAuth2 token renewal). |
 | `cx-runtime` | The runnable suite (`CxTckSuite`), packaged as `cx-tck-runtime.jar`.        |
 
 ## Building
@@ -81,7 +81,7 @@ presentation-query callback. The
 
 ## Status
 
-Two suites of mandatory test cases, both combining DSP exchange with DCP identity.
+Three suites of mandatory test cases, all combining DSP exchange with DCP identity.
 
 ### Catalog requests (`CxCatalog01Test`)
 
@@ -109,6 +109,28 @@ negotiated agreement id is carried into the transfer.
 self-test** (the in-memory connector does not evaluate contract policy) and runs only against a real
 connector under test.
 
-Follow-ups: per-request token minting, transfer completion, and the remaining Catena-X profile
-specifics (CEL policy operands, JSON-Schema policy validation) described in
-[`../neptune.md`](../neptune.md).
+### Token renewal flows (`CxRenewalFlow01Test`)
+
+Each test first drives the base flow (**catalog → contract negotiation → transfer to `STARTED`**)
+exactly like `CX_FLOW:01-01`, then exercises the DSP **Token Renewal profile**. It reads the
+renewal parameters carried in the transfer-start data address (`refreshEndpoint`, `refreshToken`
+and the current `authorization` access token, via `CxFunctions`) and performs an OAuth2
+**refresh-token grant** ([RFC 6749 §6](https://www.rfc-editor.org/rfc/rfc6749#section-6)): a
+form-encoded `POST refreshEndpoint` with `grant_type=refresh_token&refresh_token=…`.
+
+The renewal request is authorized with a **DCP self-issued token** minted through the injected
+`SelfIssuedTokenProvider` — the same identity mechanism used for the DSP exchange, but carrying the
+data address's current access token in the `token` claim so the client authentication is bound to
+the original grant.
+
+| Test ID                 | Verifies                                                                                                          | Expected result |
+|-------------------------|------------------------------------------------------------------------------------------------------------------|-----------------|
+| `CX_RENEWAL_FLOW:01-01` | Full flow, then a `refresh_token` grant at the data address's `refreshEndpoint` authorized with a DCP self-issued token | `200` with a new `access_token` |
+| `CX_RENEWAL_FLOW:01-02` | Full flow, then a `refresh_token` grant presenting a syntactically valid but **unknown refresh token**             | Grant rejected (`4xx`, `invalid_grant`) |
+
+Both cases require a real DCP identity and real renewal properties in the data address, neither of
+which the in-memory connector provides, so they are **skipped in the local self-test** and run only
+against a real connector under test.
+
+Follow-ups: transfer completion and the remaining Catena-X profile specifics (CEL policy operands,
+JSON-Schema policy validation) described in [`../neptune.md`](../neptune.md).

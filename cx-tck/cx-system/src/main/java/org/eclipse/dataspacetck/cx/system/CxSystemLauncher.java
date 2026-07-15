@@ -30,6 +30,7 @@ import org.eclipse.dataspacetck.cx.runtime.CxRuntime;
 import org.eclipse.dataspacetck.cx.system.assembly.CxDcpAssembly;
 import org.eclipse.dataspacetck.cx.system.dsp.catalog.http.CxDspCatalogHttpClient;
 import org.eclipse.dataspacetck.cx.system.dsp.catalog.local.CxDspCatalogLocalClient;
+import org.eclipse.dataspacetck.cx.token.SelfIssuedTokenProvider;
 import org.eclipse.dataspacetck.dcp.system.annotation.IssueCredentials;
 import org.eclipse.dataspacetck.dcp.system.assembly.BaseAssembly;
 import org.eclipse.dataspacetck.dcp.system.assembly.ServiceAssembly;
@@ -164,7 +165,8 @@ public class CxSystemLauncher implements SystemLauncher {
     }
 
     private <T> boolean localProvides(Class<T> type) {
-        return type.isAssignableFrom(CxDspCatalogClient.class);
+        return type.isAssignableFrom(CxDspCatalogClient.class)
+                || type.isAssignableFrom(SelfIssuedTokenProvider.class);
     }
 
     @Override
@@ -184,6 +186,15 @@ public class CxSystemLauncher implements SystemLauncher {
     private <T> T localGetService(Class<T> type, ServiceConfiguration configuration, ServiceResolver resolver) {
         if (type.isAssignableFrom(CxDspCatalogClient.class)) {
             return type.cast(createCatalogClient(configuration.getScopeId(), configuration, resolver));
+        }
+        if (type.isAssignableFrom(SelfIssuedTokenProvider.class)) {
+            // Bind a token provider to this scope so a test can mint the same DCP self-issued token used to authorize
+            // the DSP exchange (e.g. to authorize an OAuth2 token-renewal request). Minting is lazy: the delegate only
+            // runs when mintToken is invoked, so injecting this in local self-test mode (where baseAssembly is null)
+            // does not fail unless the token is actually requested.
+            var scopeId = configuration.getScopeId();
+            SelfIssuedTokenProvider provider = (scopes, embeddedToken) -> fetchSelfSignedToken(scopeId, configuration, resolver, scopes, embeddedToken);
+            return type.cast(provider);
         }
         return null;
     }
@@ -216,20 +227,27 @@ public class CxSystemLauncher implements SystemLauncher {
         }
     }
 
-    private String fetchSelfSignedToken(String scopeId, ServiceConfiguration configuration, ServiceResolver resolver, List<String> scopes) {
+    private String fetchSelfSignedToken(String scopeId, ServiceConfiguration configuration, ServiceResolver resolver, List<String> scopes, String embeddedToken) {
         var assembly = getOrInitServiceAssembly(scopeId, configuration, resolver);
 
         var audience = providerDid != null ? providerDid : baseAssembly.getVerifierDid();
 
-        // obtain an access token from the holder's Secure Token Server, scoped to the membership credential;
-        // the connector under test presents this back to the hosted CredentialService during verification
-        var accessTokenResult = assembly.getStsClient().obtainReadToken(audience, scopes);
-        if (accessTokenResult.failed()) {
-            throw new AssertionError("Unable to obtain DCP access token: " + accessTokenResult.getFailure());
+
+        if (embeddedToken == null) {
+            // obtain an access token from the holder's Secure Token Server, scoped to the membership credential;
+            // the connector under test presents this back to the hosted CredentialService during verification
+            var accessTokenResult = assembly.getStsClient().obtainReadToken(audience, scopes);
+            if (accessTokenResult.failed()) {
+                throw new AssertionError("Unable to obtain DCP access token: " + accessTokenResult.getFailure());
+            }
+            embeddedToken = accessTokenResult.getContent();
         }
 
-        return createSelfIssuedToken(baseAssembly.getHolderDid(), audience,
-                accessTokenResult.getContent(), baseAssembly.getHolderKeyService());
+        return createSelfIssuedToken(baseAssembly.getHolderDid(), audience, embeddedToken, baseAssembly.getHolderKeyService());
+    }
+
+    private String fetchSelfSignedToken(String scopeId, ServiceConfiguration configuration, ServiceResolver resolver, List<String> scopes) {
+        return fetchSelfSignedToken(scopeId, configuration, resolver, scopes, null);
     }
 
     private @NonNull CxDcpAssembly getOrInitServiceAssembly(String scopeId, ServiceConfiguration configuration, ServiceResolver resolver) {
