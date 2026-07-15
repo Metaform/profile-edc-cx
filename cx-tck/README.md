@@ -38,12 +38,12 @@ launcher, so cx-tck provides a composing one:
 
 ## Modules
 
-| Module       | Purpose                                                                    |
-|--------------|----------------------------------------------------------------------------|
-| `cx-system`  | `CxSystemLauncher` — the composing launcher (DSP exchange + DCP identity).  |
-| `cx-catalog` | The catalog test cases (`CxCatalog01Test`), discovered by package scan.     |
+| Module       | Purpose                                                                                                                                        |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| `cx-system`  | `CxSystemLauncher` — the composing launcher (DSP exchange + DCP identity).                                                                     |
+| `cx-catalog` | The catalog test cases (`CxCatalog01Test`), discovered by package scan.                                                                        |
 | `cx-flow`    | The end-to-end flow test cases: `CxFlow01Test` (catalog → negotiation → transfer) and `CxRenewalFlow01Test` (transfer → OAuth2 token renewal). |
-| `cx-runtime` | The runnable suite (`CxTckSuite`), packaged as `cx-tck-runtime.jar`.        |
+| `cx-runtime` | The runnable suite (`CxTckSuite`), packaged as `cx-tck-runtime.jar`.                                                                           |
 
 ## Building
 
@@ -79,19 +79,114 @@ request authorized with a DCP self-issued token, and the connector verifies it v
 presentation-query callback. The
 [`tractusx`](../charts/tractusx) Helm chart in this repository deploys a suitable connector.
 
+## Required policies
+
+To run the suite against a real connector under test, the datasets referenced by the tests must be
+published with the policies below. The connector evaluates these policies against the DCP identity
+the TCK presents, so they determine whether a catalog entry is visible, a contract can be negotiated,
+and a transfer can start.
+
+The leftOperand should be namespaced with `https://w3id.org/catenax/2025/9/policy/`
+
+The action may vary on the use case which for access policy may be `access`
+
+### Membership Policy
+
+```json
+{
+  "@type": "Set",
+  "permission": [
+    {
+      "action": "use",
+      "constraint": [
+        {
+          "leftOperand": "Membership",
+          "operator": "eq",
+          "rightOperand": "active"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### BPN Policy
+
+```json
+{
+  "@type": "Set",
+  "permission": [
+    {
+      "action": "use",
+      "constraint": [
+        {
+          "and": [
+            {
+              "leftOperand": "Membership",
+              "operator": "eq",
+              "rightOperand": "active"
+            },
+            {
+              "leftOperand": "BusinessPartnerNumber",
+              "operator": "eq",
+              "rightOperand": "<BPN>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+where `<BPN>` is the BPN of TCK connector configured in the TCK properties as `dataspacetck.cx.bpn`.
+
+### DataExchangeGovernance Policy
+
+```json
+{
+  "@type": "Set",
+  "permission": [
+    {
+      "action": "use",
+      "constraint": [
+        {
+          "and": [
+            {
+              "leftOperand": "Membership",
+              "operator": "eq",
+              "rightOperand": "active"
+            },
+            {
+              "leftOperand": "FrameworkAgreement",
+              "operator": "eq",
+              "rightOperand": "DataExchangeGovernance:1.0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## Status
 
 Three suites of mandatory test cases, all combining DSP exchange with DCP identity.
 
 ### Catalog requests (`CxCatalog01Test`)
 
-| Test ID        | Verifies                                                                          | Expected result |
-|----------------|-----------------------------------------------------------------------------------|-----------------|
-| `CX_CAT:01-01` | Catalog request authorized with a DCP identity (Membership + BPN + Gov credentials) | Catalog returned |
-| `CX_CAT:01-02` | Catalog request authorized with a DCP identity presented with the **wrong scopes**  | `401` catalog error |
-| `CX_CAT:01-03` | Catalog request authorized with a DCP identity **missing required credentials**     | `401` catalog error |
-| `CX_CAT:01-04` | Catalog request against a dataset carrying a **BPN access restriction**              | Catalog returned |
-| `CX_CAT:01-05` | Catalog request that **filters out** a BPN-restricted dataset for a non-matching BPN | Restricted dataset filtered out |
+| Test ID        | Verifies                                                                             | Expected result                 | Access Policy     | Contract Policy |
+|----------------|--------------------------------------------------------------------------------------|---------------------------------|-------------------|-----------------|
+| `CX_CAT:01-01` | Catalog request authorized with a DCP identity (Membership + BPN + Gov credentials)  | Catalog returned                | Memberhisp Policy | Any policy      |
+| `CX_CAT:01-02` | Catalog request authorized with a DCP identity presented with the **wrong scopes**   | `401` catalog error             | Any policy        | Any policy      |
+| `CX_CAT:01-03` | Catalog request authorized with a DCP identity **missing required credentials**      | `401` catalog error             | Any policy        | Any policy      |
+| `CX_CAT:01-04` | Catalog request against a dataset carrying a **BPN access restriction**              | Catalog returned                | BPN Policy        | Any policy      |
+| `CX_CAT:01-05` | Catalog request that **filters out** a BPN-restricted dataset for a non-matching BPN | Restricted dataset filtered out | BPN Policy        | Any policy      |
+
+For `CX_CAT:01-04` and `CX_CAT:01-05`, the BPN in the policy must match the TCK connector's BPN
+(`dataspacetck.cx.bpn`) and it's advised to use the same dataset for both tests, so that the connector can be configured
+with a single dataset carrying the BPN policy.
 
 ### End-to-end flows (`CxFlow01Test`)
 
@@ -100,14 +195,15 @@ driven by the TCK as the consumer against the connector under test as the provid
 is negotiated is the **real offer extracted from the catalog** response (`CxFunctions`), and the
 negotiated agreement id is carried into the transfer.
 
-| Test ID         | Verifies                                                                                                                     | Expected result |
-|-----------------|------------------------------------------------------------------------------------------------------------------------------|-----------------|
-| `CX_FLOW:01-01` | Catalog fetch → contract negotiation to `FINALIZED` → transfer to `STARTED`, extracting the data address from the `TransferStartMessage` | Transfer started; data address present |
-| `CX_FLOW:01-02` | Contract request for an offer whose contract policy the identity cannot satisfy (non-matching `DataExchangeGovernance` contract version) | `401` on the contract request |
+| Test ID         | Verifies                                                                                                                                 | Expected result                        | Access Policy     | Contract Policy               |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|-------------------|-------------------------------|
+| `CX_FLOW:01-01` | Catalog fetch → contract negotiation to `FINALIZED` → transfer to `STARTED`, extracting the data address from the `TransferStartMessage` | Transfer started; data address present | Membership Policy | DataExchangeGovernance Policy |
+| `CX_FLOW:01-02` | Contract request for an offer whose contract policy the identity cannot satisfy (non-matching `DataExchangeGovernance` contract version) | `401` on the contract request          | Membership Policy | DataExchangeGovernance Policy |
 
 `CX_FLOW:01-02` exercises real contract-policy enforcement, so it is **skipped in the local
 self-test** (the in-memory connector does not evaluate contract policy) and runs only against a real
-connector under test.
+connector under test. The tck connector present a DataExchangeGovernance credential with a version
+`not-matching-version` to trigger the contract rejection.
 
 ### Token renewal flows (`CxRenewalFlow01Test`)
 
@@ -123,10 +219,10 @@ The renewal request is authorized with a **DCP self-issued token** minted throug
 data address's current access token in the `token` claim so the client authentication is bound to
 the original grant.
 
-| Test ID                 | Verifies                                                                                                          | Expected result |
-|-------------------------|------------------------------------------------------------------------------------------------------------------|-----------------|
-| `CX_RENEWAL_FLOW:01-01` | Full flow, then a `refresh_token` grant at the data address's `refreshEndpoint` authorized with a DCP self-issued token | `200` with a new `access_token` |
-| `CX_RENEWAL_FLOW:01-02` | Full flow, then a `refresh_token` grant presenting a syntactically valid but **unknown refresh token**             | Grant rejected (`4xx`, `invalid_grant`) |
+| Test ID                 | Verifies                                                                                                                | Expected result                         |
+|-------------------------|-------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| `CX_RENEWAL_FLOW:01-01` | Full flow, then a `refresh_token` grant at the data address's `refreshEndpoint` authorized with a DCP self-issued token | `200` with a new `access_token`         |
+| `CX_RENEWAL_FLOW:01-02` | Full flow, then a `refresh_token` grant presenting a syntactically valid but **unknown refresh token**                  | Grant rejected (`4xx`, `invalid_grant`) |
 
 Both cases require a real DCP identity and real renewal properties in the data address, neither of
 which the in-memory connector provides, so they are **skipped in the local self-test** and run only

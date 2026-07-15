@@ -145,7 +145,7 @@ public class CxFlow01Test extends AbstractCxFlowTest {
             """)
     @IssueCredentials({MEMBERSHIP_CREDENTIAL_TYPE, BPN_CREDENTIAL_TYPE, GOV_CREDENTIAL_TYPE})
     @DcpScope({MEMBERSHIP_SCOPE, BPN_SCOPE, GOV_SCOPE})
-    @ContractVersion("2.0")
+    @ContractVersion("not-matching-version")
     public void cx_flow_01_02(@DcpScope({MEMBERSHIP_SCOPE, BPN_SCOPE, GOV_SCOPE}) CxDspCatalogClient catalogClient) {
         // The in-memory connector does not evaluate contract policy, so it cannot reject the request with a 401. This
         // negative case is only meaningful against a real connector under test.
