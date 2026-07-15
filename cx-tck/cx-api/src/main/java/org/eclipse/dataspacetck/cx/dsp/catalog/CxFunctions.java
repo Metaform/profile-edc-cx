@@ -17,6 +17,7 @@ package org.eclipse.dataspacetck.cx.dsp.catalog;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.eclipse.dataspacetck.dsp.system.api.message.DcatConstants.DCAT_PROPERTY_DATASET_EXPANDED;
 import static org.eclipse.dataspacetck.dsp.system.api.message.DspConstants.DSPACE_NAMESPACE;
@@ -122,7 +123,15 @@ public final class CxFunctions {
      * The endpoint URL of an expanded data address.
      */
     public static String extractEndpoint(Map<String, Object> dataAddress) {
-        return stringProperty(DSPACE_PROPERTY_ENDPOINT_EXPANDED, dataAddress);
+        var endpoint = stringProperty(DSPACE_PROPERTY_ENDPOINT_EXPANDED, dataAddress, true);
+
+        // compatibility with old EDC connectors
+        if (endpoint == null) {
+            var properties = extractEndpointProperties(dataAddress);
+            endpoint = Optional.ofNullable(properties.get("https://w3id.org/edc/v0.0.1/ns/endpoint"))
+                    .orElseGet(() -> properties.get("endpoint"));
+        }
+        return endpoint;
     }
 
     /**

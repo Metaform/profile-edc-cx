@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.BPN_CREDENTIAL_TYPE;
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.BPN_SCOPE;
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.GOV_CREDENTIAL_TYPE;
@@ -40,12 +39,14 @@ import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.MEMBERSHIP_CREDE
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.MEMBERSHIP_SCOPE;
 import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractAgreementId;
 import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractDataAddress;
+import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractEndpoint;
 import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractOfferId;
 import static org.eclipse.dataspacetck.dsp.system.api.message.DcatConstants.DCAT_PROPERTY_DATASET_EXPANDED;
 import static org.eclipse.dataspacetck.dsp.system.api.message.catalog.CatalogFunctions.createCatalogRequest;
 import static org.eclipse.dataspacetck.dsp.system.api.statemachine.ContractNegotiation.State.AGREED;
 import static org.eclipse.dataspacetck.dsp.system.api.statemachine.ContractNegotiation.State.FINALIZED;
 import static org.eclipse.dataspacetck.dsp.system.api.statemachine.TransferProcess.State.STARTED;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * CX_FLOW_01: Catena-X end-to-end flow tests combining DSP exchange (catalog, contract negotiation, transfer process)
@@ -127,7 +128,7 @@ public class CxFlow01Test extends AbstractCxFlowTest {
         // the provider's TransferStartMessage carries the data address the consumer pulls data from
         var dataAddress = dataAddressRef.get();
         assertThat(dataAddress).as("transfer start data address").isNotNull();
-//        assertThat(extractEndpoint(dataAddress)).as("data address endpoint").isNotBlank();
+        assertThat(extractEndpoint(dataAddress)).as("data address endpoint").isNotBlank();
     }
 
     @MandatoryTest

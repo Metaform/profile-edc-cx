@@ -30,8 +30,8 @@ class CxTckSuiteRemoteTest {
     void verifyTestSuite() {
         var result = TckRuntime.Builder.newInstance()
                 .property(TCK_LAUNCHER, CxSystemLauncher.class.getName())
-                .property("dataspacetck.dsp.connector.http.url", "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/c71c5ab6e38c40ad8e67caf47f009dc6/cx-neptune")
-                .property("dataspacetck.dsp.connector.http.base.url", "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/c71c5ab6e38c40ad8e67caf47f009dc6")
+                .property("dataspacetck.dsp.connector.http.url", "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/30df151f50d44839a089d807e700a8f3/cx-neptune")
+                .property("dataspacetck.dsp.connector.http.base.url", "http://controlplane.edc-v.svc.cluster.local:8082/api/dsp/30df151f50d44839a089d807e700a8f3")
                 .property("dataspacetck.dsp.connector.negotiation.initiate.url", "http://example.org")
                 .property("dataspacetck.dsp.connector.transfer.initiate.url", "http://example.org")
                 .property("dataspacetck.dsp.connector.agent.id", "urn:connector:provider")

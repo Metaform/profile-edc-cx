@@ -166,30 +166,30 @@ spec:
               echo "================================================"
               echo "Cache JSON-LD contexts"
               echo "================================================"
-              seed "JSON-LD context odrl.jsonld" "jsonldcontexts" <<'JSON'
+              seed "JSON-LD context odrl.jsonld" "cacheddocuments" <<'JSON'
               {
                 "@context": [
                   "https://w3id.org/edc/connector/management/v2"
                 ],
-                "@type": "CachedJsonLdContext",
+                "@type": "CachedDocument",
                 "url": "https://w3id.org/catenax/2025/9/policy/odrl.jsonld"
               }
               JSON
-              seed "JSON-LD context context.jsonld" "jsonldcontexts" <<'JSON'
+              seed "JSON-LD context context.jsonld" "cacheddocuments" <<'JSON'
               {
                 "@context": [
                   "https://w3id.org/edc/connector/management/v2"
                 ],
-                "@type": "CachedJsonLdContext",
+                "@type": "CachedDocument",
                 "url": "https://w3id.org/catenax/2025/9/policy/context.jsonld"
               }
               JSON
-              seed "JSON-LD context tx auth" "jsonldcontexts" <<'JSON'
+              seed "JSON-LD context tx auth" "cacheddocuments" <<'JSON'
               {
                 "@context": [
                   "https://w3id.org/edc/connector/management/v2"
                 ],
-                "@type": "CachedJsonLdContext",
+                "@type": "CachedDocument",
                 "url": "https://w3id.org/tractusx/auth/v1.0.0",
                 "content":{
                     "@context": {
