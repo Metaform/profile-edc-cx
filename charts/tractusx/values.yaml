@@ -73,6 +73,9 @@ tractusx-connector:
     id: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx"
     trustedIssuers:
       - "did:web:issuerservice.edc-v.svc.cluster.local%3A10016:issuer"
+      - "did:web:cx-tck.edc-v.svc.cluster.local:issuer"
+    cache:
+      enabled: false
     sts:
       oauth:
         # STS token endpoint, served by the identityhub service in this namespace.
@@ -86,6 +89,8 @@ tractusx-connector:
           id: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx"
           secret_alias: sts-secret-alias
   dataplane:
+    debug:
+      enabled: true
     env:
       EDC_IAM_DID_WEB_USE_HTTPS: false
     token:
