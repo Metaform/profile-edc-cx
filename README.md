@@ -32,6 +32,7 @@ there for the details.
 | [`neptune.md`](./neptune.md) | The full profile specification — protocol, DCP scopes, CEL expressions, JSON Schema validation, JSON-LD contexts. **Start here for technical detail.** |
 | [`charts/cx-profile/`](./charts/cx-profile) | Helm chart (`jad-catenax-profile`) that seeds the Catena-X profile onto a running platform. |
 | [`charts/tractusx/`](./charts/tractusx) | Optional wrapper chart deploying a [Tractus-X](https://github.com/eclipse-tractusx/tractusx-edc) EDC connector + an in-memory BPN-DID Resolution Service. |
+| [`cx-tck/`](./cx-tck) | Catena-X **Technology Compatibility Kit** — verifies a connector correctly implements the DSP exchange + DCP identity combination. See [`cx-tck/README.md`](./cx-tck/README.md). |
 | [`requests/EDC-V-Onboarding-Cx/`](./requests/EDC-V-Onboarding-Cx) | [Bruno](https://usebruno.com) API collection that drives participant onboarding and a data-transfer demo. |
 | [`scripts/token.sh`](./scripts/token.sh) | Mints a Management-API bearer token via a Kubernetes ServiceAccount token + RFC 8693 exchange. |
 
@@ -157,6 +158,21 @@ requests in the Bruno collection to fetch the catalog from the Tractus-X provide
 
 For the connector's own configuration options, see the upstream
 [tractusx-edc](https://github.com/eclipse-tractusx/tractusx-edc) chart documentation.
+
+## Verifying a connector — the cx-tck compatibility kit
+
+[`cx-tck/`](./cx-tck) is a **Technology Compatibility Kit** for connectors participating in the
+Catena-X dataspace. It checks that a connector correctly implements the combination of **DSP**
+(Dataspace Protocol `2025-1`) exchange authorized with a **DCP** identity, by reusing the published
+`dsp-tck` and `dcp-tck` artifacts rather than re-implementing either protocol.
+
+It can run as a local self-test (in-memory connector, no identity) or against a real connector
+under test — the [`charts/tractusx`](./charts/tractusx) connector above is a suitable target.
+Running against a real connector requires publishing the datasets with the expected policies and
+adding the TCK's embedded issuer DID to the connector's trusted issuers.
+
+See [`cx-tck/README.md`](./cx-tck/README.md) for the full setup, configuration and the catalog /
+flow / token-renewal test suites.
 
 ## Further reading
 
