@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.time.Instant.now;
@@ -84,6 +85,7 @@ public class CxSystemLauncher implements SystemLauncher {
     private static final long TOKEN_VALIDITY_SECONDS = 600;
 
     static {
+        registerDocument(URI.create("https://w3id.org/tractusx/auth/v1.0.0"), "tx-auth.jsonld");
         registerDocument(URI.create("https://w3id.org/catenax/2025/9/policy/context.jsonld"), "cx-policy.jsonld");
         registerDocument(URI.create("https://w3id.org/catenax/2025/9/policy/odrl.jsonld"), "cx-odrl-profile.jsonld");
         registerDocument(URI.create("https://w3id.org/edc/dspace/v0.0.1"), "edc-dspace-profile.jsonld");
@@ -278,6 +280,7 @@ public class CxSystemLauncher implements SystemLauncher {
      */
     private String createSelfIssuedToken(String holderDid, String audience, String accessToken, KeyService keyService) {
         var claims = new JWTClaimsSet.Builder()
+                .jwtID(UUID.randomUUID().toString())
                 .issuer(holderDid)
                 .subject(holderDid)
                 .audience(audience)
