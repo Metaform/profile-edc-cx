@@ -1,0 +1,101 @@
+#
+# Copyright (c) 2026 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+
+## Runs the Catena-X TCK once against the connector under test. The published runtime image
+## always exits 0 (the suite writes its result summary to stdout but does not set a failure
+## exit code), so read pass/fail from the logs:
+##   kubectl logs -f job/cx-tck -n {{ include "jadtx.namespace" . }}
+## The pod carries app: cx-tck so the cx-tck Service routes callbacks / did:web lookups to it
+## for the duration of the run.
+{{- $tck := .Values.tck }}
+{{- $connectorHost := include "jadtx.fqdn" (dict "svc" $tck.connector.service "ctx" $) }}
+{{- $dspBase := printf "http://%s:%v%s/%s" $connectorHost $tck.connector.port $tck.connector.dspBasePath $tck.participantId }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cx-tck
+  namespace: {{ include "jadtx.namespace" . }}
+  labels:
+    app: cx-tck
+    type: edcv-job
+    {{- include "jadtx.labels" . | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app: cx-tck
+        platform: edcv
+        type: edcv-job
+      annotations:
+        # Force a new pod (re-run) when the rendered config.properties changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      restartPolicy: Never
+      {{- if .Values.job.waitForConnector }}
+      initContainers:
+        # Gate the suite on the connector controlplane DSP endpoint answering. A bare curl exits
+        # 0 on any HTTP response (incl. 401/404) and non-zero only on connection failure.
+        - name: wait-for-connector
+          image: {{ .Values.images.curl }}
+          env:
+            - name: DSP_BASE
+              value: {{ $dspBase | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              until curl -s -o /dev/null "${DSP_BASE}"; do
+                echo "Waiting for connector DSP endpoint at ${DSP_BASE} ..."
+                sleep 5
+              done
+              echo "Connector DSP endpoint is ready!"
+      {{- end }}
+      containers:
+        - name: cx-tck
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.debug.enabled }}
+          env:
+            - name: "JAVA_TOOL_OPTIONS"
+            {{- if .Values.debug.suspendOnStart }}
+              value: >-
+                {{ printf "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=%v" .Values.debug.port }}
+            {{- else }}
+              value: >-
+                {{ printf "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=%v" .Values.debug.port }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: callback
+              containerPort: {{ .Values.tck.callbackPort }}
+            {{- if .Values.debug.enabled }}
+            - name: debug
+              containerPort: {{ .Values.debug.port }}
+            {{- end }}
+          # No readiness probe: the Service publishes this pod immediately
+          # (publishNotReadyAddresses) so the TCK can reach itself during startup. The harness
+          # binds the callback server before it issues credentials, so the endpoint is live in time.
+          volumeMounts:
+            - name: config
+              mountPath: /etc/tck
+              readOnly: true
+          {{- with .Values.job.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: cx-tck-config

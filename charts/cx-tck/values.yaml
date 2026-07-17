@@ -1,0 +1,130 @@
+#
+# Copyright (c) 2026 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+
+# These MUST match the platform release the connector under test runs on; they are used
+# to build the in-cluster controlplane DSP endpoint below, using the same
+# <svc>.<namespace>.<clusterDomain> convention as the jadtx.fqdn helper.
+global:
+  namespace: edc-v
+  clusterDomain: svc.cluster.local
+
+image:
+  repository: ghcr.io/metaform/cx-tck-runtime
+  tag: latest
+  pullPolicy: Always
+
+# Remote JVM debugging (JDWP) for the TCK runtime container. When enabled a debug
+# agent is attached via JAVA_TOOL_OPTIONS and the port is exposed on the pod
+# (attach with: kubectl port-forward job/cx-tck <port>:<port> -n edc-v).
+# suspendOnStart pauses the JVM until a debugger connects (suspend=y).
+debug:
+  enabled: false
+  suspendOnStart: false
+  port: 1044
+
+# The Service that hosts the TCK callback + did:web documents. It MUST be named "cx-tck":
+# the connector under test dials this host for the presentation-query callback and resolves
+# the TCK's did:web DIDs (dataspacetck.did.issuer / dataspacetck.did.holder) against it.
+#
+# The harness always binds its embedded server on 0.0.0.0:8083 (SystemsConstants
+# TCK_DEFAULT_PORT), independent of dataspacetck.callback.address. The callback address and
+# the did:web hosts carry no explicit port, so the connector dials them on port 80. Hence the
+# Service exposes port 80 and targets the container's 8083 — mirroring the previous
+# cx-tck/mock.yaml Service (port 80) but pointing at the real runtime instead of nginx.
+service:
+  port: 80
+  targetPort: 8083
+  # The TCK must reach its own callback / did:web endpoints (cx-tck.<ns>.svc.cluster.local)
+  # during startup, before k8s marks the pod Ready. Publish the pod as a Service endpoint
+  # immediately so the self-calls resolve; do not gate routing on readiness.
+  publishNotReadyAddresses: true
+
+job:
+  # A conformance run is a single deterministic shot; do not retry the whole suite.
+  backoffLimit: 0
+  # Keep the finished pod around long enough to read its logs, then let it be GC'd (which
+  # also frees the immutable Job name for the next `helm upgrade`/reinstall).
+  ttlSecondsAfterFinished: 3600
+  # Wait for the connector controlplane DSP endpoint to answer before starting the suite.
+  waitForConnector: true
+  resources: {}
+
+# Image used by the wait-for-connector init container.
+images:
+  curl: curlimages/curl:latest
+
+tck:
+  # Bind port of the harness callback server (SystemsConstants dataspacetck.port). Kept in
+  # sync with service.targetPort and the container port.
+  callbackPort: 8083
+
+  # Participant context id of the connector under test — the id segment of the DSP URL path.
+  # Override for your environment, e.g. --set tck.participantId=<id>.
+  participantId: "changeme-participant-id"
+  # Dataspace profile appended to the DSP url (.../api/dsp/<participantId>/<dspProfile>).
+  dspProfile: cx-neptune
+
+  connector:
+    # In-cluster controlplane DSP endpoint of the connector under test.
+    service: controlplane
+    port: 8082
+    dspBasePath: /api/dsp
+    agentId: "urn:connector:provider"
+    # Unused against a real connector but must be present and parseable as URLs.
+    negotiationInitiateUrl: "http://example.org"
+    transferInitiateUrl: "http://example.org"
+
+  # Advertised callback address (no explicit port => port 80, served by the cx-tck Service).
+  callbackAddress: "http://cx-tck.edc-v.svc.cluster.local"
+
+  did:
+    # Hosted by the TCK on the cx-tck Service (paths /issuer and /cx-tck). The connector under
+    # test MUST trust dataspacetck.did.issuer (see charts/tractusx trustedIssuers).
+    issuer: "did:web:cx-tck.edc-v.svc.cluster.local:issuer"
+    holder: "did:web:cx-tck.edc-v.svc.cluster.local:cx-tck"
+    # The connector-under-test's own verifier DID (on identityhub), NOT hosted by the TCK.
+    verifier: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:provider"
+
+  bpn: "BPNL00000003TCK"
+  # vcScopePattern: "(org.eclipse.tractusx.vc.type):(?<type>.*):(.*)"
+  vcScopePattern: "(org.eclipse.dspace.dcp.vc.type):(?<type>.*):(.*)"
+
+  datasets:
+    # Catalog request tests (CxCatalog01Test).
+    catalog0101: cert_asset
+    catalog0104: bpn_asset
+    catalog0105: bpn_asset
+    # Full-flow tests (CxFlow01Test).
+    flow0101Id: cert_asset
+    flow0101Format: HttpData-PULL
+    flow0102Id: gov_asset
+    # Token-renewal flow tests (CxRenewalFlow01Test).
+    renewal0101Id: gov_asset
+    renewal0101Format: HttpData-PULL
+    renewal0102Id: gov_asset
+    renewal0102Format: HttpData-PULL
+
+  # EC P-256 JWK used for both the holder and issuer keys. It is normalized to a single
+  # compact JSON line when rendered into the Java .properties config (helm fromJson|toJson),
+  # so it may be pretty-printed here. Override with a private values file for real runs.
+  keyJwk: |
+    {
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "deK8PmxHcQhUxgtyd2Cq-Edcif1APkxohKzS7FZsBWo",
+      "y": "EhUBt_1EtjN4xCBAG5HQlGzmizbyLRY6kDRhJPKkoeo",
+      "d": "C35yL0bFQgP2S1m3Wr5hDMV6iO8I1zCYNMGstdYAaz4",
+      "kid": "test-1",
+      "use": "sig",
+      "alg": "ES256"
+    }

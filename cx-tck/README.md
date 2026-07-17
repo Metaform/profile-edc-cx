@@ -79,6 +79,33 @@ request authorized with a DCP self-issued token, and the connector verifies it v
 presentation-query callback. The
 [`tractusx`](../charts/tractusx) Helm chart in this repository deploys a suitable connector.
 
+### In-cluster run via Helm
+
+The [`charts/cx-tck`](../charts/cx-tck) chart runs the suite entirely inside the cluster as a
+one-shot `Job`, using the published `ghcr.io/metaform/cx-tck-runtime:latest` image — no local JVM
+and no mirrord. It renders the same properties as `CxTckSuiteRemoteTest` into a ConfigMap
+(`/etc/tck/config.properties`) and creates the `cx-tck` Service that hosts the TCK callback and its
+`did:web` documents, so the connector under test can call back and resolve the TCK identity. It
+replaces the `cx-tck/mock.yaml` + `.mirrord/mirrord.json` developer flow for CI-style runs.
+
+```bash
+# The connector under test must trust did:web:cx-tck.<ns>.svc.cluster.local:issuer and publish the
+# datasets/policies below. Set participantId to the connector's participant context id.
+helm install cx-tck ../charts/cx-tck -n edc-v \
+  --set tck.participantId=<participant-context-id>
+
+kubectl logs -f job/cx-tck -n edc-v
+```
+
+Configure the run through `charts/cx-tck/values.yaml` (connector coordinates, DIDs, BPN, dataset
+ids, and the `tck.keyJwk` holder/issuer key — override the sample key for real runs).
+
+> **Reading the result.** The runtime writes its pass/fail summary to stdout and prints
+> `Test run complete`, but the container **always exits `0`** even when tests fail. So the Job/pod
+> always shows `Complete` — judge the outcome from the result summary in `kubectl logs`, not from the
+> pod status. Re-run with `helm uninstall cx-tck && helm install …` (a `Job` spec is immutable, so a
+> plain `helm upgrade` over an existing run is not supported).
+
 ### Trusted issuer
 
 The credentials the TCK presents (Membership, BPN and DataExchangeGovernance) are **issued and

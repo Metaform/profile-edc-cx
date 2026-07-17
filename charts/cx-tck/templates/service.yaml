@@ -1,0 +1,37 @@
+#
+# Copyright (c) 2026 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+
+## Hosts the TCK callback + did:web documents. MUST be named "cx-tck" so the in-cluster host
+## cx-tck.<namespace>.<clusterDomain> (used in dataspacetck.callback.address and the did:web
+## DIDs) resolves to the runner pod. Exposes port 80 (what the connector dials) and targets the
+## harness bind port 8083. Replaces the previous cx-tck/mock.yaml Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: cx-tck
+  namespace: {{ include "jadtx.namespace" . }}
+  labels:
+    app: cx-tck
+    {{- include "jadtx.labels" . | nindent 4 }}
+spec:
+  # The TCK resolves its OWN did:web DIDs and hits its own callback endpoint through this
+  # Service during startup (to issue credentials) — before k8s would consider the pod Ready.
+  # Publish the pod as an endpoint immediately so those self-calls (and the connector's
+  # callbacks) route without waiting on a readiness gate.
+  publishNotReadyAddresses: {{ .Values.service.publishNotReadyAddresses }}
+  selector:
+    app: cx-tck
+  ports:
+    - name: callback
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}

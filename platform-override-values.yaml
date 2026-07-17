@@ -1,4 +1,8 @@
 edc:
+  controlplane:
+    trustedIssuers:
+      - name: cxtck
+        id: "did:web:cx-tck.edc-v.svc.cluster.local:issuer"
   identityhub:
     scopes:
       - name: membership
