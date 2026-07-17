@@ -3,7 +3,7 @@ format.version = "1.1"
 
 [versions]
 # shared, protocol-agnostic tck harness (github.com/eclipse-dataspacetck)
-tck = "1.2.2"
+tck = "1.2.3"
 # published protocol tcks reused by cx-tck
 dsp = "1.0.2-SNAPSHOT"
 dcp = "1.0.3-SNAPSHOT"

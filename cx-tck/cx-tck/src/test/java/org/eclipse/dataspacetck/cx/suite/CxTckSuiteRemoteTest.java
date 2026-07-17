@@ -65,6 +65,7 @@ class CxTckSuiteRemoteTest {
                 .property("CX_RENEWAL_FLOW_01_01_FORMAT", "HttpData-PULL")
                 .property("CX_RENEWAL_FLOW_01_02_DATASETID", "gov_asset")
                 .property("CX_RENEWAL_FLOW_01_02_FORMAT", "HttpData-PULL")
+                .property("dataspacetck.vc.scope.pattern", "(org.eclipse.tractusx.vc.type):(?<type>.*):(.*)")
                 .addPackage("org.eclipse.dataspacetck.cx.verification")
                 .monitor(new ConsoleMonitor(false, true))
                 .build().execute();
