@@ -1,0 +1,366 @@
+#
+# Copyright (c) 2026 Metaform Systems, Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License, Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#      Metaform Systems, Inc. - initial API and implementation
+#
+
+## Publishes the datasets the TCK requires (cert_asset / bpn_asset / gov_asset) on the connector
+## under test, each with its ODRL access/contract policy and a contract definition, via the JAD
+## controlplane /v5beta Management API. Runs as a pre-install/pre-upgrade Helm hook so it completes
+## before the cx-tck Job (a normal resource) is created. Auth is a jwtlet RFC-8693 token-exchange,
+## the same mechanism charts/cx-profile/templates/edc-seed.yaml uses. Idempotent: HTTP 409 is
+## treated as "already present".
+
+{{- if .Values.seed.enabled }}
+{{- $tck := .Values.tck }}
+{{- $seed := .Values.seed }}
+{{- $edcBase := printf "http://%s:%v%s" (include "jadtx.fqdn" (dict "svc" $seed.management.service "ctx" $)) $seed.management.port $seed.management.basePath }}
+{{- $participant := $seed.targetParticipantId | default $tck.participantId }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: connector-seed
+  namespace: {{ include "jadtx.namespace" . }}
+  labels:
+    app: connector-seed
+    type: edcv-job
+    {{- include "jadtx.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": {{ $seed.hookDeletePolicy | quote }}
+spec:
+  backoffLimit: {{ $seed.backoffLimit }}
+  ttlSecondsAfterFinished: {{ $seed.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app: connector-seed
+        platform: edcv
+        type: edcv-job
+    spec:
+      serviceAccountName: {{ $seed.serviceAccountName }}
+      restartPolicy: OnFailure
+      initContainers:
+        # Wait for the EDC controlplane Management API to answer. A bare `curl -s` exits 0 on any
+        # HTTP response (incl. 401/405), non-zero only on connection failure — an auth-free gate.
+        - name: wait-for-edc
+          image: {{ .Values.images.curl }}
+          env:
+            - name: EDC_BASE
+              value: {{ $edcBase | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              until curl -s -o /dev/null "${EDC_BASE}/v5beta/dataspaceprofiles"; do
+                echo "Waiting for EDC controlplane management API at ${EDC_BASE} ..."
+                sleep 5
+              done
+              echo "EDC controlplane management API is ready!"
+      containers:
+        - name: seed-connector
+          image: {{ .Values.images.curl }}
+          env:
+            - name: EDC_BASE
+              value: {{ $edcBase | quote }}
+            - name: JWTLET_TOKEN_URL
+              value: "http://{{ include "jadtx.fqdn" (dict "svc" "jwtlet" "ctx" $) }}:8080/token"
+            - name: BASE
+              value: "v5beta/participants/{{ $participant }}"
+          volumeMounts:
+            - name: jwtlet-subject-token
+              mountPath: /var/run/secrets/jwtlet
+              readOnly: true
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              # Executes a curl request and stores body in RESP_BODY and status code in RESP_STATUS.
+              do_curl() {
+                RESP=$(curl -s -w "\n%{http_code}" "$@")
+                RESP_STATUS=$(printf '%s\n' "$RESP" | tail -1)
+                RESP_BODY=$(printf '%s\n' "$RESP" | sed '$d')
+              }
+
+              # seed <label> <endpoint>  — POSTs the JSON body read from stdin to
+              # $EDC_BASE/<endpoint>. Uses --data @- so single quotes in the payload don't break
+              # shell quoting. HTTP 409 is tolerated (already present).
+              seed() {
+                RESP=$(curl -s -w "\n%{http_code}" -X POST "${EDC_BASE}/$2" \
+                  -H "Authorization: Bearer ${EXCHANGED_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  --data @-)
+                RESP_STATUS=$(printf '%s\n' "$RESP" | tail -1)
+                RESP_BODY=$(printf '%s\n' "$RESP" | sed '$d')
+                if [ "$RESP_STATUS" -eq 409 ]; then
+                  echo "⚠ $1 already present"
+                elif [ "$RESP_STATUS" -ge 400 ]; then
+                  echo "ERROR: $1 failed (HTTP $RESP_STATUS): $RESP_BODY"
+                  exit 1
+                else
+                  echo "✓ $1 created"
+                fi
+              }
+
+              SA_TOKEN=$(cat /var/run/secrets/jwtlet/token)
+              if [ -z "$SA_TOKEN" ]; then
+                echo "ERROR: subject token at /var/run/secrets/jwtlet/token is empty"
+                exit 1
+              fi
+
+              echo "================================================"
+              echo "Obtain Management-API token"
+              echo "================================================"
+
+              # exchange SA token for a management-api scoped connector token
+              do_curl -X POST "${JWTLET_TOKEN_URL}" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+                --data-urlencode "subject_token=${SA_TOKEN}" \
+                --data-urlencode "resource={{ $seed.tokenExchange.participantContextId }}" \
+                --data-urlencode "scope={{ $seed.tokenExchange.scope }}" \
+                --data-urlencode "audience={{ .Values.global.tokenExchangeAudience }}"
+              if [ "$RESP_STATUS" -ge 400 ]; then
+                echo "ERROR: Failed to exchange SA token (HTTP $RESP_STATUS): $RESP_BODY"
+                exit 1
+              fi
+              EXCHANGED_TOKEN=$(printf '%s\n' "$RESP_BODY" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+              if [ -z "$EXCHANGED_TOKEN" ]; then
+                echo "ERROR: Failed to parse exchanged token from response: $RESP_BODY"
+                exit 1
+              fi
+              echo "✓ Management-API token obtained"
+
+              echo ""
+              echo "================================================"
+              echo "Create Assets"
+              echo "================================================"
+              seed "asset {{ $seed.assets.cert }}" "${BASE}/assets" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "Asset",
+                "@id": "{{ $seed.assets.cert }}",
+                "dataAddress": {
+                  "@type": "DataAddress",
+                  "type": "{{ $seed.dataAddress.type }}",
+                  "baseUrl": "{{ $seed.dataAddress.baseUrl }}"
+                },
+                "properties": {
+                  "description": "cert_asset — visible with the Membership credential"
+                }
+              }
+              JSON
+              seed "asset {{ $seed.assets.bpn }}" "${BASE}/assets" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "Asset",
+                "@id": "{{ $seed.assets.bpn }}",
+                "dataAddress": {
+                  "@type": "DataAddress",
+                  "type": "{{ $seed.dataAddress.type }}",
+                  "baseUrl": "{{ $seed.dataAddress.baseUrl }}"
+                },
+                "properties": {
+                  "description": "bpn_asset — carries a BPN access restriction"
+                }
+              }
+              JSON
+              seed "asset {{ $seed.assets.gov }}" "${BASE}/assets" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "Asset",
+                "@id": "{{ $seed.assets.gov }}",
+                "dataAddress": {
+                  "@type": "DataAddress",
+                  "type": "{{ $seed.dataAddress.type }}",
+                  "baseUrl": "{{ $seed.dataAddress.baseUrl }}"
+                },
+                "properties": {
+                  "description": "gov_asset — DataExchangeGovernance contract policy"
+                }
+              }
+              JSON
+
+              echo ""
+              echo "================================================"
+              echo "Create Policy Definitions"
+              echo "================================================"
+              seed "policy membership_policy" "${BASE}/policydefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2",
+                  "{{ $seed.policyContext }}"
+                ],
+                "@type": "PolicyDefinition",
+                "@id": "membership_policy",
+                "policy": {
+                  "@type": "Set",
+                  "permission": [
+                    {
+                      "action": "use",
+                      "constraint": [
+                        {
+                          "leftOperand": "Membership",
+                          "operator": "eq",
+                          "rightOperand": "active"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+              JSON
+              seed "policy bpn_policy" "${BASE}/policydefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2",
+                  "{{ $seed.policyContext }}"
+                ],
+                "@type": "PolicyDefinition",
+                "@id": "bpn_policy",
+                "policy": {
+                  "@type": "Set",
+                  "permission": [
+                    {
+                      "action": "use",
+                      "constraint": [
+                        {
+                          "and": [
+                            {
+                              "leftOperand": "Membership",
+                              "operator": "eq",
+                              "rightOperand": "active"
+                            },
+                            {
+                              "leftOperand": "BusinessPartnerNumber",
+                              "operator": "eq",
+                              "rightOperand": "{{ $tck.bpn }}"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+              JSON
+              seed "policy gov_policy" "${BASE}/policydefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2",
+                  "{{ $seed.policyContext }}"
+                ],
+                "@type": "PolicyDefinition",
+                "@id": "gov_policy",
+                "policy": {
+                  "@type": "Set",
+                  "permission": [
+                    {
+                      "action": "use",
+                      "constraint": [
+                        {
+                          "and": [
+                            {
+                              "leftOperand": "Membership",
+                              "operator": "eq",
+                              "rightOperand": "active"
+                            },
+                            {
+                              "leftOperand": "FrameworkAgreement",
+                              "operator": "eq",
+                              "rightOperand": "{{ $seed.frameworkAgreement }}"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+              JSON
+
+              echo ""
+              echo "================================================"
+              echo "Create Contract Definitions"
+              echo "================================================"
+              seed "contract definition cert_cd" "${BASE}/contractdefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "ContractDefinition",
+                "@id": "cert_cd",
+                "accessPolicyId": "membership_policy",
+                "contractPolicyId": "membership_policy",
+                "assetsSelector": [
+                  {
+                    "@type": "Criterion",
+                    "operandLeft": "https://w3id.org/edc/v0.0.1/ns/id",
+                    "operator": "=",
+                    "operandRight": "{{ $seed.assets.cert }}"
+                  }
+                ]
+              }
+              JSON
+              seed "contract definition bpn_cd" "${BASE}/contractdefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "ContractDefinition",
+                "@id": "bpn_cd",
+                "accessPolicyId": "bpn_policy",
+                "contractPolicyId": "membership_policy",
+                "assetsSelector": [
+                  {
+                    "@type": "Criterion",
+                    "operandLeft": "https://w3id.org/edc/v0.0.1/ns/id",
+                    "operator": "=",
+                    "operandRight": "{{ $seed.assets.bpn }}"
+                  }
+                ]
+              }
+              JSON
+              seed "contract definition gov_cd" "${BASE}/contractdefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "ContractDefinition",
+                "@id": "gov_cd",
+                "accessPolicyId": "membership_policy",
+                "contractPolicyId": "gov_policy",
+                "assetsSelector": [
+                  {
+                    "@type": "Criterion",
+                    "operandLeft": "https://w3id.org/edc/v0.0.1/ns/id",
+                    "operator": "=",
+                    "operandRight": "{{ $seed.assets.gov }}"
+                  }
+                ]
+              }
+              JSON
+
+              echo ""
+              echo "================================================"
+              echo "Connector seeding completed successfully!"
+              echo "================================================"
+      volumes:
+        {{- include "jadtx.jwtletSubjectTokenVolume" . | nindent 8 }}
+{{- end }}

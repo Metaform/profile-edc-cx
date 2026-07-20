@@ -17,6 +17,11 @@
 global:
   namespace: edc-v
   clusterDomain: svc.cluster.local
+  # Token-exchange audience + projected SA subject-token settings used by the connector-seed
+  # hook Job to obtain a Management-API token from jwtlet (mirrors charts/cx-profile).
+  tokenExchangeAudience: edcv
+  jwtSubjectTokenAudience: https://kubernetes.default.svc.cluster.local
+  jwtSubjectTokenExpirationSeconds: 3600
 
 image:
   repository: ghcr.io/metaform/cx-tck-runtime
@@ -128,3 +133,51 @@ tck:
       "use": "sig",
       "alg": "ES256"
     }
+
+# Seeds the connector under test with the assets, ODRL policies and contract definitions the
+# suite requires (cert_asset / bpn_asset / gov_asset), published on the JAD controlplane
+# Management API before the cx-tck Job runs. Implemented as a pre-install/pre-upgrade Helm hook
+# Job (templates/connector-seed.yaml), authenticated via jwtlet RFC-8693 token-exchange — the
+# same mechanism charts/cx-profile uses. Idempotent: HTTP 409 is treated as "already present".
+seed:
+  enabled: true
+  # ServiceAccount + jwtlet service are created by the platform/cx-profile release in this
+  # namespace; cx-tck reuses them, it does not create them.
+  serviceAccountName: seed-jobs
+  hookDeletePolicy: before-hook-creation,hook-succeeded
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 5
+
+  # JAD controlplane Management API. Base = http://<service>.<ns>.<clusterDomain>:<port><basePath>,
+  # resources under /v5beta/participants/<participant>/<resource>.
+  management:
+    service: controlplane
+    port: 8081
+    basePath: /api/mgmt
+
+  # RFC-8693 token-exchange parameters. The exchanged token authorizes the Management-API POSTs;
+  # "issuer" + "admin" grants create across participant contexts (mirrors cx-profile edcSeed).
+  tokenExchange:
+    participantContextId: issuer
+    scope: admin
+
+  # Provider participant context that owns the seeded assets (the id segment of the connector's
+  # DSP url). Empty => use tck.participantId.
+  targetParticipantId: ""
+
+  # Dummy pull data address so the flow / renewal transfer tests can start and return a data address.
+  dataAddress:
+    type: HttpData
+    baseUrl: https://mycorp.org/api
+
+  # Right operand of the DataExchangeGovernance FrameworkAgreement constraint (gov_asset contract policy).
+  frameworkAgreement: "DataExchangeGovernance:1.0"
+  # Catena-X policy JSON-LD context: expands the short leftOperands (Membership, BusinessPartnerNumber,
+  # FrameworkAgreement) to the IRIs evaluated by the CEL expressions seeded by cx-profile edc-seed.
+  policyContext: "https://w3id.org/catenax/2025/9/policy/context.jsonld"
+
+  # Asset ids to seed. MUST match the ids referenced under tck.datasets.* above.
+  assets:
+    cert: cert_asset
+    bpn: bpn_asset
+    gov: gov_asset

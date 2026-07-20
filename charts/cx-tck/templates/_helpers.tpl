@@ -25,3 +25,15 @@ platform: edcv
 {{- define "jadtx.fqdn" -}}
 {{- printf "%s.%s.%s" .svc (include "jadtx.namespace" .ctx) .ctx.Values.global.clusterDomain -}}
 {{- end -}}
+
+
+{{/* Projected jwtlet subject-token volume (RFC 8693 subject_token). */}}
+{{- define "jadtx.jwtletSubjectTokenVolume" -}}
+- name: jwtlet-subject-token
+  projected:
+    sources:
+      - serviceAccountToken:
+          path: token
+          audience: {{ .Values.global.jwtSubjectTokenAudience | quote }}
+          expirationSeconds: {{ .Values.global.jwtSubjectTokenExpirationSeconds }}
+{{- end -}}
