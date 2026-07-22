@@ -39,6 +39,10 @@ import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.MEMBERSHIP_CREDE
 public class CxDcpAssembly extends ServiceAssembly {
 
 
+    private static final List<String> ADDITIONAL_CONTEXT = List.of(
+            "https://w3id.org/catenax/credentials/v1.0.0"
+    );
+
     public CxDcpAssembly(BaseAssembly baseAssembly, ServiceResolver resolver, ServiceConfiguration configuration) {
         super(baseAssembly, resolver, configuration);
     }
@@ -54,19 +58,19 @@ public class CxDcpAssembly extends ServiceAssembly {
                 "id", holderDid,
                 "holderIdentifier", holderIdentifier, "memberOf", "Catena-X");
 
-        var membershipContainer = createVcContainer(issuerDid, holderDid, credentialGenerator, MEMBERSHIP_CREDENTIAL_TYPE, membershipClaims);
+        var membershipContainer = createVcContainer(issuerDid, holderDid, credentialGenerator, ADDITIONAL_CONTEXT, MEMBERSHIP_CREDENTIAL_TYPE, membershipClaims);
 
         Map<String, Object> bpn = Map.of(
                 "id", holderDid,
                 "bpn", holderIdentifier);
-        var bpnContainer = createVcContainer(issuerDid, holderDid, credentialGenerator, BPN_CREDENTIAL_TYPE, bpn);
+        var bpnContainer = createVcContainer(issuerDid, holderDid, credentialGenerator, ADDITIONAL_CONTEXT, BPN_CREDENTIAL_TYPE, bpn);
 
         Map<String, Object> gov = Map.of(
                 "id", holderDid,
                 "holderIdentifier", holderIdentifier,
                 "contractVersion", Optional.ofNullable(contractVersion).orElse("1.0")
         );
-        var govContainer = createVcContainer(issuerDid, holderDid, credentialGenerator, GOV_CREDENTIAL_TYPE, gov);
+        var govContainer = createVcContainer(issuerDid, holderDid, credentialGenerator, ADDITIONAL_CONTEXT, GOV_CREDENTIAL_TYPE, gov);
 
         var correlation = baseAssembly.getHolderPid();
 
@@ -84,7 +88,7 @@ public class CxDcpAssembly extends ServiceAssembly {
         List<VcContainer> containers = Stream.of(membershipContainer, bpnContainer, govContainer)
                 .filter(container -> types.contains(container.credentialType()))
                 .toList();
-        
+
         try {
             sendCredentialMessage(baseAssembly, correlation, token, containers.toArray(new VcContainer[0]));
         } catch (JsonProcessingException e) {
