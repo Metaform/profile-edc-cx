@@ -262,7 +262,7 @@ spec:
                   "contract.negotiation",
                   "transfer.process"
                 ],
-                "expression": "ctx.agent.claims.vc.filter(c, c.type.exists(t, t == 'MembershipCredential')).exists(c, c.credentialSubject.exists(cs, cs.memberOf == 'Catena-X'))"
+                "expression": "ctx.agent.claims.vc.withContext('https://w3id.org/catenax/credentials/v1.0.0').withType('MembershipCredential').hasClaim('memberOf', 'Catena-X')"
               }
               JSON
               seed "CEL expression gov-expression" "celexpressions" <<'JSON'
@@ -279,7 +279,7 @@ spec:
                   "contract.negotiation",
                   "transfer.process"
                 ],
-                "expression": "ctx.agent.claims.vc.filter(c, c.type.exists(t, t == 'DataExchangeGovernanceCredential')).exists(c, c.credentialSubject.exists(cs, 'DataExchangeGovernance:' + cs.contractVersion == this.rightOperand))"
+                "expression": "ctx.agent.claims.vc.withContext('https://w3id.org/catenax/credentials/v1.0.0').withType('DataExchangeGovernanceCredential').claims('contractVersion').exists(v, 'DataExchangeGovernance:' + v == this.rightOperand)"
               }
               JSON
               seed "CEL expression bpn-expression" "celexpressions" <<'JSON'
@@ -296,7 +296,7 @@ spec:
                   "contract.negotiation",
                   "transfer.process"
                 ],
-                "expression": "ctx.agent.claims.vc.filter(c, c.type.exists(t, t == 'BpnCredential')).exists(c, c.credentialSubject.exists(cs, cs.bpn == this.rightOperand ))"
+                "expression": "ctx.agent.claims.vc.withContext('https://w3id.org/catenax/credentials/v1.0.0').withType('BpnCredential').hasClaim('bpn', this.rightOperand)"
               }
               JSON
 

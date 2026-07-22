@@ -265,8 +265,28 @@ In CEL expressions:
 
 - `this` exposes the constraint under evaluation with `leftOperand`, `rightOperand` and `operator` values.
 - `ctx` exposes additional information injected by components depending on the policy context (e.g. `ctx.agreement` in `transfer.process` / `policy.monitor` scopes).
-- `ctx.agent` will contains the information about the `ParticipantAgent`. When using the Verifiable Credential-based handshake, `ctx.agent.vc` will contain the list of VerifiableCredential objects in the presentation mapped by `VcClaimMapper`.
+- `ctx.agent` will contains the information about the `ParticipantAgent`. When using the Verifiable Credential-based handshake, `ctx.agent.claims.vc` will contain the list of verifiable credentials in the presentation, each flattened into a map by `VcClaimMapper`.
 - `now` is the current timestamp.
+
+The `decentralized-claims-cel` module also registers a set of **verifiable-credential helper functions** on
+`ctx.agent.claims.vc`, so credential checks do not have to be spelled out as nested `filter`/`exists` macros.
+They are null- and shape-safe (a missing key or credential yields "no match" rather than an evaluation error):
+
+| Function                                  | Result | Meaning                                                    |
+|-------------------------------------------|--------|------------------------------------------------------------|
+| `withType(t)` / `withContext(c)` / `withIssuer(id)` | list   | filter credentials by `type` / `@context` / issuer         |
+| `valid()`                                 | list   | credentials already issued and not expired                 |
+| `hasCredential(t)`                        | bool   | whether any credential has type `t`                        |
+| `hasClaim(name[, value])`                 | bool   | whether any subject has claim `name` (equal to `value`)    |
+| `claim(name)` / `claims(name)`            | dyn/list | the first / all values of subject claim `name`           |
+
+A matching set of single-credential overloads (`hasType`, `hasContext`, `hasClaim`, `claim`, `valid`) compose
+with the standard CEL macros, e.g. `ctx.agent.claims.vc.exists(c, c.hasType('X') && c.valid())`. The
+expressions below use these helpers.
+
+Every expression first restricts the credential list to those carrying the Catena-X credentials JSON-LD context
+(`withContext('https://w3id.org/catenax/credentials/v1.0.0')`), so that only credentials issued under the
+Catena-X credential model are considered before the type and claim checks are applied.
 
 ### 5.1 Expression payloads
 
@@ -317,7 +337,7 @@ Content-Type: application/json
     "contract.negotiation",
     "transfer.process"
   ],
-  "expression": "ctx.agent.claims.vc.filter(c, c.type.exists(t, t == 'MembershipCredential')).exists(c, c.credentialSubject.exists(cs, cs.memberOf == 'Catena-X'))"
+  "expression": "ctx.agent.claims.vc.withContext('https://w3id.org/catenax/credentials/v1.0.0').withType('MembershipCredential').hasClaim('memberOf', 'Catena-X')"
 }
 ```
 
@@ -357,7 +377,7 @@ Content-Type: application/json
     "contract.negotiation",
     "transfer.process"
   ],
-  "expression": "ctx.agent.claims.vc.filter(c, c.type.exists(t, t == 'DataExchangeGovernanceCredential')).exists(c, c.credentialSubject.exists(cs, 'DataExchangeGovernance:' + cs.contractVersion == this.rightOperand))"
+  "expression": "ctx.agent.claims.vc.withContext('https://w3id.org/catenax/credentials/v1.0.0').withType('DataExchangeGovernanceCredential').claims('contractVersion').exists(v, 'DataExchangeGovernance:' + v == this.rightOperand)"
 }
 ```
 
@@ -396,7 +416,7 @@ Content-Type: application/json
     "contract.negotiation",
     "transfer.process"
   ],
-  "expression": "ctx.agent.claims.vc.filter(c, c.type.exists(t, t == 'BpnCredential')).exists(c, c.credentialSubject.exists(cs, cs.bpn == this.rightOperand ))"
+  "expression": "ctx.agent.claims.vc.withContext('https://w3id.org/catenax/credentials/v1.0.0').withType('BpnCredential').hasClaim('bpn', this.rightOperand)"
 }
 ```
 
