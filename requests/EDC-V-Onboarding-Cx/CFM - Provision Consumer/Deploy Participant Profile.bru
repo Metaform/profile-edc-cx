@@ -23,6 +23,16 @@ body:json {
         "bpn": "BPNL01234567891j0",
         "contractVersion": "1.0",
         "memberOf": "Catena-X"
+      },
+      "cfm.dataplane": {
+        "transferTypeMappings": {
+          "HttpData-PULL": {
+            "transferType": "HttpData-PULL",
+            "endpointType": "https://w3id.org/idsa/v4.1/HTTP",
+            "endpoint": "https://jsonplaceholder.typicode.com/users",
+            "txRenewalSupport": true
+          }
+        }
       }
     },
     "participantRoles": {
