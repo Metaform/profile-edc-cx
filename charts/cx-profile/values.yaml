@@ -57,3 +57,16 @@ seedJobs:
 
 issuer:
   participantContextId: issuer
+  # The issuer's DID, used verbatim as the credential issuer in the dataspace profile's
+  # credentialSpecs. It MUST equal the DID core-platform-distribution minted for the issuer
+  # participant context, or every credential fails verification during onboarding.
+  #
+  # The platform derives that DID from its own gateway hostname — normally
+  #   did:web:issuer.<platform global.host>:<participantContextId>
+  # — but it can also be pinned there outright via edc.issuerservice.did.id, so this is a plain
+  # value rather than a second copy of that rule. A non-default port on the platform's gateway is
+  # percent-encoded into the authority, e.g. did:web:issuer.example.com%3A8080:issuer.
+  #
+  # Read the live value with:
+  #   kubectl -n <ns> get httproute issuerservice-did -o jsonpath='{.spec.hostnames[0]}'
+  did: "did:web:issuer.cxve.localhost:issuer"

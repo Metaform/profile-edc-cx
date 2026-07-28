@@ -41,7 +41,18 @@ platform: edcv
 {{- end -}}
 
 
-{{/* Trusted-issuer DID (URL-encoded port, e.g. did:web:<host>%3A10016:issuer). */}}
+{{/* Trusted-issuer DID, taken verbatim from `issuer.did`.
+
+     It MUST equal the DID the platform actually minted for the issuer participant context: it is
+     written into the dataspace profile's credentialSpecs, and every issued credential is verified
+     against it. A mismatch surfaces only at credential verification during onboarding, far from
+     the cause, so this is deliberately a plain configured value rather than something derived —
+     core-platform-distribution builds the DID from its own `global.external.*` settings, and any
+     second copy of that rule silently drifts when the platform is reconfigured.
+
+     Read the live value off the deployment with either of:
+       kubectl -n <ns> get httproute issuerservice-did -o jsonpath='{.spec.hostnames[0]}'
+       helm -n <ns> get values core-platform */}}
 {{- define "jadtx.issuerDid" -}}
-{{- printf "did:web:%s%%3A10016:issuer" (include "jadtx.fqdn" (dict "svc" "issuerservice" "ctx" .)) -}}
+{{- required "issuer.did must be set to the platform's issuer DID (see values.yaml)" .Values.issuer.did -}}
 {{- end -}}
