@@ -61,7 +61,7 @@ First, deploy the CPD platform itself:
 
 ```bash
 helm upgrade --install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
-    --version 0.0.6 \
+    --version 0.0.17 \
     --namespace edc-v --create-namespace \
     --wait --timeout 15m
 ```
@@ -132,7 +132,7 @@ to configure the siglet with the tractus-x renewal protocol support:
 
 ```bash
 helm upgrade -install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
-		--version 0.0.7 \
+		--version 0.0.17 \
     -f platform-override-values.yaml \
 		--namespace edc-v --create-namespace --wait --timeout 15m
 ```
