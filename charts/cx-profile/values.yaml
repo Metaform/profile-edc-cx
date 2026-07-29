@@ -17,6 +17,10 @@
 global:
   namespace: edc-v
   clusterDomain: svc.cluster.local
+  # Gateway hostname the platform advertises about itself. Must match the host in
+  # issuer.did below (did:web:issuer.<host>:issuer). Used by the coredns-rewrite
+  # seed job to build the in-cluster rewrite rules.
+  host: cxve.localhost
   tokenExchangeAudience: edcv
   # RFC 8693 subject-token wiring (must match jwtlet's client_audience).
   jwtSubjectTokenAudience: https://kubernetes.default.svc.cluster.local
@@ -32,6 +36,18 @@ seedJobs:
   ttlSecondsAfterFinished: 600
   images:
     curl: curlimages/curl:latest
+    # glibc-based (NOT musl/alpine): the coredns-rewrite job verifies resolution with
+    # getent, which musl short-circuits for *.localhost.
+    kubectl: bitnami/kubectl:latest
+  # Makes the gateway hostnames resolvable INSIDE the cluster by rewriting the CoreDNS
+  # Corefile to point them at the Traefik Service. OFF by default: it needs an RBAC grant
+  # in kube-system (scoped to the coredns ConfigMap/Deployment). Enable only on clusters
+  # (e.g. KinD/Minikube) where that is allowed and *.localhost otherwise resolves to loopback.
+  corednsRewrite:
+    enabled: false
+    traefikService: traefik
+    traefikNamespace: traefik
+    extraHostnames: []
   # Toggle the two seeding phases independently.
   issuerCredentials:
     enabled: true

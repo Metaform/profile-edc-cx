@@ -1,0 +1,9 @@
+global:
+  host: jad.localhost
+
+issuer:
+  did: "did:web:issuer.jad.localhost:issuer"
+
+seedJobs:
+  corednsRewrite:
+    enabled: true

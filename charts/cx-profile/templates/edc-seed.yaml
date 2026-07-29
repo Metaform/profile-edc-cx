@@ -159,7 +159,11 @@ spec:
                   "https://w3id.org/catenax/2025/9/policy/odrl.jsonld",
                   "https://w3id.org/dspace/2025/1/context.jsonld",
                   "https://w3id.org/edc/dspace/v0.0.1"
-                ]
+                ],
+                "trustedIssuers": [{
+                  "@id": "{{ include "jadtx.issuerDid" . }}",
+                  "supportedTypes": ["*"]
+                }]
               }
               JSON
 
