@@ -86,3 +86,9 @@ issuer:
   # Read the live value with:
   #   kubectl -n <ns> get httproute issuerservice-did -o jsonpath='{.spec.hostnames[0]}'
   did: "did:web:issuer.cxve.localhost:issuer"
+  # ADDITIONAL issuer DIDs to trust in the cx-neptune dataspace profile, each trusting all
+  # credential types. `issuer.did` above is always trusted and is always the first entry, so an
+  # empty list means "trust only the local issuer". Duplicates are removed. E.g.
+  #   trustedIssuers:
+  #     - "did:web:issuer.partner.example.com:issuer"
+  trustedIssuers: []

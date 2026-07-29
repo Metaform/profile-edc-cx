@@ -160,10 +160,7 @@ spec:
                   "https://w3id.org/dspace/2025/1/context.jsonld",
                   "https://w3id.org/edc/dspace/v0.0.1"
                 ],
-                "trustedIssuers": [{
-                  "@id": "{{ include "jadtx.issuerDid" . }}",
-                  "supportedTypes": ["*"]
-                }]
+                "trustedIssuers": {{ include "jadtx.trustedIssuers" . }}
               }
               JSON
 

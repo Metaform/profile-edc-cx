@@ -56,3 +56,19 @@ platform: edcv
 {{- define "jadtx.issuerDid" -}}
 {{- required "issuer.did must be set to the platform's issuer DID (see values.yaml)" .Values.issuer.did -}}
 {{- end -}}
+
+
+{{/* trustedIssuers array for the dataspace profile, rendered as inline JSON.
+
+     `issuer.did` is always the first entry; anything in `issuer.trustedIssuers` is appended to
+     it, so the local issuer can never be accidentally dropped. Duplicates are removed (re-listing
+     `issuer.did` there is harmless). Every entry trusts all credential types
+     ("supportedTypes": ["*"]). */}}
+{{- define "jadtx.trustedIssuers" -}}
+{{- $dids := concat (list (include "jadtx.issuerDid" .)) (.Values.issuer.trustedIssuers | default (list)) | uniq -}}
+{{- $out := list -}}
+{{- range $dids -}}
+{{- $out = append $out (dict "@id" . "supportedTypes" (list "*")) -}}
+{{- end -}}
+{{- toJson $out -}}
+{{- end -}}
