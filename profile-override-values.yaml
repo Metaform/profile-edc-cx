@@ -3,6 +3,12 @@ global:
 
 issuer:
   did: "did:web:issuer.jad.localhost:issuer"
+  trustedIssuers:
+    - "did:web:cx-tck.edc-v.svc.cluster.local:issuer"
+
+edc:
+  dataplane:
+    enabled: true
 
 seedJobs:
   corednsRewrite:

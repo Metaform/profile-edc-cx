@@ -25,6 +25,61 @@ global:
   # RFC 8693 subject-token wiring (must match jwtlet's client_audience).
   jwtSubjectTokenAudience: https://kubernetes.default.svc.cluster.local
   jwtSubjectTokenExpirationSeconds: 3600
+  # Default imagePullPolicy for the dataplane; overridable per-component below.
+  imagePullPolicy: Always
+  # Gateway the dataplane HTTPRoute attaches to. Must match the platform's gatewayName
+  # (the same Gateway is reused) and the host above.
+  gatewayName: edcv-gateway
+  # Emit JAVA_TOOL_OPTIONS with a JDWP agent (port 1044) in the dataplane. Dev-only.
+  debug:
+    enabled: false
+
+# Default registry prepended to the dataplane image when its `repo` has no host.
+imageRegistry: ghcr.io
+
+# =============================================================================
+# EDC dataplane. Ported from the JAD dataspace profile; OFF by default. Enable
+# it (e.g. in profile-override-values.yaml) to run a dataplane in the same
+# namespace as the platform, reaching the platform's postgres / vault / nats /
+# siglet services (see the connection blocks below, which point at the platform
+# release). Requires the platform's edcv-gateway, telemetry-config ConfigMap,
+# siglet service, and the `dataplane` postgres database to exist in-cluster.
+# =============================================================================
+edc:
+  dataplane:
+    enabled: false
+    image:
+      repo: eclipse-dataspace-hub/jad/dataplane
+      tag: latest
+    replicas: 1
+    # imagePullPolicy overrides global.imagePullPolicy for this component (empty = use global)
+    imagePullPolicy: ""
+    resources: {}
+
+# Infra connection targets. This chart is a separate release from the platform, so these
+# MUST point at the platform release's services. Defaults follow the core-platform release
+# in the edc-v namespace; override if the platform release/namespace differ.
+postgresql:
+  connection:
+    host: core-platform-postgresql.edc-v.svc.cluster.local
+    port: 5432
+
+vault:
+  connection:
+    host: core-platform-vault.edc-v.svc.cluster.local
+    port: 8200
+    scheme: http
+    rootToken: root       # dev only
+
+nats:
+  connection:
+    host: core-platform-nats.edc-v.svc.cluster.local
+    port: 4222
+
+telemetry:
+  # The telemetry-config ConfigMap is provisioned by the platform chart in this
+  # namespace; the dataplane envFroms it. Keep in sync with the platform setting.
+  configMapEnabled: true
 
 seedJobs:
   # ServiceAccount created by the platform chart; it has a jwtlet mapping to the

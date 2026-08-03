@@ -294,6 +294,7 @@ spec:
                 "@id": "membership-expression",
                 "leftOperand": "https://w3id.org/catenax/2025/9/policy/Membership",
                 "description": "Catena-X membership check: requires a valid MembershipCredential.",
+                "actions": ["https://w3id.org/catenax/2025/9/policy/access"],
                 "scopes": [
                   "catalog",
                   "contract.negotiation",
@@ -328,12 +329,49 @@ spec:
                 "@id": "bpn-expression",
                 "leftOperand": "https://w3id.org/catenax/2025/9/policy/BusinessPartnerNumber",
                 "description": "Catena-X Business Partner Number check: the active agreement's BPN (or a configured cross-reference property) must equal the right operand.",
+                "actions": ["https://w3id.org/catenax/2025/9/policy/access"],
                 "scopes": [
                   "catalog",
                   "contract.negotiation",
                   "transfer.process"
                 ],
                 "expression": "ctx.agent.claims.vc.withContext('https://w3id.org/catenax/credentials/v1.0.0').withType('BpnCredential').hasClaim('bpn', this.rightOperand)"
+              }
+              JSON
+
+              seed "CEL expression usage-puprpose-expression" "celexpressions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "CelExpression",
+                "@id": "usage-puprpose-expression",
+                "leftOperand": "https://w3id.org/catenax/2025/9/policy/UsagePurpose",
+                "description": "Catena-X Business Usage Purpose expression",
+                "scopes": [
+                  "catalog",
+                  "contract.negotiation",
+                  "transfer.process"
+                ],
+                "expression": "true"
+              }
+              JSON
+
+              seed "CEL expression data-usage-end-definition-expression" "celexpressions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "CelExpression",
+                "@id": "data-usage-end-definition-expression",
+                "leftOperand": "https://w3id.org/catenax/2025/9/policy/DataUsageEndDefinition",
+                "description": "Catena-X Business Data Usage End Definition expression",
+                "scopes": [
+                  "catalog",
+                  "contract.negotiation",
+                  "transfer.process"
+                ],
+                "expression": "true"
               }
               JSON
 

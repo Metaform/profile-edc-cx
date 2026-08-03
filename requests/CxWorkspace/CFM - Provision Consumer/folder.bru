@@ -1,0 +1,13 @@
+meta {
+  name: CFM - Provision Consumer
+  seq: 2
+}
+
+auth {
+  mode: inherit
+}
+
+vars:pre-request {
+  participant_name: Consumer Tenant
+  participant_did: did:web:identityhub.edc-v.svc.cluster.local%3A7083:consumer
+}

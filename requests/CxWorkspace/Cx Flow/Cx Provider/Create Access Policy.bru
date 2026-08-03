@@ -1,0 +1,53 @@
+meta {
+  name: Create Access Policy
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{cpBaseUrl}}/v5beta/participants/{{provider_id}}/policydefinitions
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "@context": [
+      "https://w3id.org/edc/connector/management/v2",
+      "https://w3id.org/catenax/2025/9/policy/context.jsonld"
+    ],
+    "@type": "PolicyDefinition",
+    "@id": "{{ACCESS_POLICY_ID}}",
+    "policy": {
+      "@type": "Set",
+      "permission": [
+        {
+          "action": "access",
+          "constraint": [
+            {
+              "and": [
+                {
+                  "leftOperand": "Membership",
+                  "operator": "eq",
+                  "rightOperand": "active"
+                },
+                {
+                  "leftOperand": "BusinessPartnerNumber",
+                  "operator": "isAnyOf",
+                  "rightOperand": [
+                    "BPNL01234567891j0"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
