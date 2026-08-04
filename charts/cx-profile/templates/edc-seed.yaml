@@ -13,10 +13,10 @@
 
 ## Configures the Catena-X dataspace profile (cx-neptune) on the EDC controlplane via its
 ## /v5beta Management API: the DataspaceProfile, its cached JSON-LD contexts, the DCP scopes
-## and the CEL policy expressions. Runs after issuer-credentials-seed (10) and
-## dataspace-profile-seed (20). Idempotent: for the static resources HTTP 409 is treated as
-## "already present", while the DataspaceProfile is upserted (409 -> PUT) so its trustedIssuers
-## can be changed by a later helm upgrade.
+## and the CEL policy expressions. Runs after issuer-credentials-seed (110) and
+## dataspace-profile-seed (120). Weights start at 110 so that, installed as a subchart of the
+## cx-ve umbrella, these seeds run after the platform's own hooks (weights 10/20) in the
+## release's shared hook space. Idempotent: HTTP 409 is treated as "already present".
 
 {{- if .Values.seedJobs.edcSeed.enabled }}
 {{- $edc := .Values.seedJobs.edcSeed }}
@@ -33,7 +33,7 @@ metadata:
     {{- include "jadtx.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "30"
+    "helm.sh/hook-weight": "130"
     "helm.sh/hook-delete-policy": {{ .Values.seedJobs.hookDeletePolicy | quote }}
 spec:
   backoffLimit: 5
