@@ -17,10 +17,69 @@
 global:
   namespace: edc-v
   clusterDomain: svc.cluster.local
+  # Gateway hostname the platform advertises about itself. Must match the host in
+  # issuer.did below (did:web:issuer.<host>:issuer). Used by the coredns-rewrite
+  # seed job to build the in-cluster rewrite rules.
+  host: cxve.localhost
   tokenExchangeAudience: edcv
   # RFC 8693 subject-token wiring (must match jwtlet's client_audience).
   jwtSubjectTokenAudience: https://kubernetes.default.svc.cluster.local
   jwtSubjectTokenExpirationSeconds: 3600
+  # Default imagePullPolicy for the dataplane; overridable per-component below.
+  imagePullPolicy: Always
+  # Gateway the dataplane HTTPRoute attaches to. Must match the platform's gatewayName
+  # (the same Gateway is reused) and the host above.
+  gatewayName: edcv-gateway
+  # Emit JAVA_TOOL_OPTIONS with a JDWP agent (port 1044) in the dataplane. Dev-only.
+  debug:
+    enabled: false
+
+# Default registry prepended to the dataplane image when its `repo` has no host.
+imageRegistry: ghcr.io
+
+# =============================================================================
+# EDC dataplane. Ported from the JAD dataspace profile; OFF by default. Enable
+# it (e.g. in profile-override-values.yaml) to run a dataplane in the same
+# namespace as the platform, reaching the platform's postgres / vault / nats /
+# siglet services (see the connection blocks below, which point at the platform
+# release). Requires the platform's edcv-gateway, telemetry-config ConfigMap,
+# siglet service, and the `dataplane` postgres database to exist in-cluster.
+# =============================================================================
+edc:
+  dataplane:
+    enabled: false
+    image:
+      repo: eclipse-dataspace-hub/jad/dataplane
+      tag: latest
+    replicas: 1
+    # imagePullPolicy overrides global.imagePullPolicy for this component (empty = use global)
+    imagePullPolicy: ""
+    resources: {}
+
+# Infra connection targets. This chart is a separate release from the platform, so these
+# MUST point at the platform release's services. Defaults follow the core-platform release
+# in the edc-v namespace; override if the platform release/namespace differ.
+postgresql:
+  connection:
+    host: core-platform-postgresql.edc-v.svc.cluster.local
+    port: 5432
+
+vault:
+  connection:
+    host: core-platform-vault.edc-v.svc.cluster.local
+    port: 8200
+    scheme: http
+    rootToken: root       # dev only
+
+nats:
+  connection:
+    host: core-platform-nats.edc-v.svc.cluster.local
+    port: 4222
+
+telemetry:
+  # The telemetry-config ConfigMap is provisioned by the platform chart in this
+  # namespace; the dataplane envFroms it. Keep in sync with the platform setting.
+  configMapEnabled: true
 
 seedJobs:
   # ServiceAccount created by the platform chart; it has a jwtlet mapping to the
@@ -32,6 +91,18 @@ seedJobs:
   ttlSecondsAfterFinished: 600
   images:
     curl: curlimages/curl:latest
+    # glibc-based (NOT musl/alpine): the coredns-rewrite job verifies resolution with
+    # getent, which musl short-circuits for *.localhost.
+    kubectl: bitnami/kubectl:latest
+  # Makes the gateway hostnames resolvable INSIDE the cluster by rewriting the CoreDNS
+  # Corefile to point them at the Traefik Service. OFF by default: it needs an RBAC grant
+  # in kube-system (scoped to the coredns ConfigMap/Deployment). Enable only on clusters
+  # (e.g. KinD/Minikube) where that is allowed and *.localhost otherwise resolves to loopback.
+  corednsRewrite:
+    enabled: false
+    traefikService: traefik
+    traefikNamespace: traefik
+    extraHostnames: []
   # Toggle the two seeding phases independently.
   issuerCredentials:
     enabled: true
@@ -70,3 +141,9 @@ issuer:
   # Read the live value with:
   #   kubectl -n <ns> get httproute issuerservice-did -o jsonpath='{.spec.hostnames[0]}'
   did: "did:web:issuer.cxve.localhost:issuer"
+  # ADDITIONAL issuer DIDs to trust in the cx-neptune dataspace profile, each trusting all
+  # credential types. `issuer.did` above is always trusted and is always the first entry, so an
+  # empty list means "trust only the local issuer". Duplicates are removed. E.g.
+  #   trustedIssuers:
+  #     - "did:web:issuer.partner.example.com:issuer"
+  trustedIssuers: []
