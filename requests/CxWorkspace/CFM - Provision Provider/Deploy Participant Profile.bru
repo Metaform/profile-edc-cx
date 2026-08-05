@@ -30,12 +30,20 @@ body:json {
             "transferType": "HttpData-PULL",
             "endpointType": "https://w3id.org/idsa/v4.1/HTTP",
             "endpoint": "http://jad.localhost/api/dp/certs/api/data",
-            "txRenewalSupport": true
+            "txRenewalSupport": true,
+            "claimMappings": [
+              {
+                "from": "flow.claims.vc.withType('BpnCredential').claim('bpn')",
+                "to": "bpn"
+              }
+            ]
           }
         }
       },
       "cfm.connector": {
-        "dataspaceProfiles": ["cx-neptune"]
+        "dataspaceProfiles": [
+          "cx-neptune"
+        ]
       }
     }
   }
