@@ -74,6 +74,7 @@ tractusx-connector:
     trustedIssuers:
       - "did:web:issuerservice.edc-v.svc.cluster.local%3A10016:issuer"
       - "did:web:cx-tck.edc-v.svc.cluster.local:issuer"
+      - "did:web:issuer.jad.localhost:issuer"
     cache:
       enabled: false
     sts:
@@ -120,6 +121,7 @@ bdrs-server-memory:
     # whose membership/BPN credentials this BDRS should trust.
     trustedIssuers:
       - "did:web:issuerservice.edc-v.svc.cluster.local%3A10016:issuer"
+      - "did:web:issuer.jad.localhost:issuer"
 
 seedJobs:
   # ServiceAccount created by the platform chart; it has a jwtlet mapping to the
