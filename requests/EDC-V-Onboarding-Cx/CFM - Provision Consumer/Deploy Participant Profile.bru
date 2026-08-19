@@ -25,6 +25,9 @@ body:json {
         "memberOf": "Catena-X"
       },
       "cfm.dataplane": {
+        "authorization": {
+          "type": "oauth2_token_exchange"
+        },
         "transferTypeMappings": {
           "HttpData-PULL": {
             "transferType": "HttpData-PULL",
@@ -34,8 +37,10 @@ body:json {
           }
         }
       },
-       "cfm.connector": {
-        "dataspaceProfiles": ["cx-neptune"]
+      "cfm.connector": {
+        "dataspaceProfiles": [
+          "cx-neptune"
+        ]
       }
     },
     "participantRoles": {
