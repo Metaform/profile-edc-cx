@@ -26,12 +26,26 @@ body:json {
       "assigner": "did:web:identityhub.edc-v.svc.cluster.local%3A7083:tx",
       "permission": [
         {
-          "action": "access",
+          "action": "use",
           "constraint": [
             {
-              "leftOperand": "Membership",
-              "operator": "eq",
-              "rightOperand": "active"
+              "and": [
+                {
+                  "leftOperand": "FrameworkAgreement",
+                  "operator": "eq",
+                  "rightOperand": "DataExchangeGovernance:1.0"
+                },
+                {
+                  "leftOperand": "UsagePurpose",
+                  "operator": "isAnyOf",
+                  "rightOperand": "cx.pcf.base:1"
+                },
+                {
+                  "leftOperand": "DataUsageEndDefinition",
+                  "operator": "eq",
+                  "rightOperand": "cx.dataUsageEnd.unlimited:1"
+                }
+              ]
             }
           ]
         }

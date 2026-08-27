@@ -1,9 +1,9 @@
 dependencies:
 - name: tractusx-connector
   repository: https://eclipse-tractusx.github.io/charts/dev
-  version: 0.12.0
+  version: 0.12.2
 - name: bdrs-server-memory
   repository: https://eclipse-tractusx.github.io/charts/dev
   version: 0.6.0
-digest: sha256:6edca245e48d6fd628141e2d4dc6e5861e30b96ace3ba50e31eb9ec8fa694509
-generated: "2026-07-03T17:29:56.309576499+02:00"
+digest: sha256:856113b642eb5050e051196d11c8155cfadd67f684674f30539512747a50bf8c
+generated: "2026-08-27T10:09:35.369833139+02:00"
