@@ -14,7 +14,6 @@
 
 package org.eclipse.dataspacetck.cx.system.assembly;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.eclipse.dataspacetck.core.spi.system.ServiceConfiguration;
 import org.eclipse.dataspacetck.core.spi.system.ServiceResolver;
@@ -89,10 +88,6 @@ public class CxDcpAssembly extends ServiceAssembly {
                 .filter(container -> types.contains(container.credentialType()))
                 .toList();
 
-        try {
-            sendCredentialMessage(baseAssembly, correlation, token, containers.toArray(new VcContainer[0]));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        sendCredentialMessage(baseAssembly, correlation, token, containers.toArray(new VcContainer[0]));
     }
 }
