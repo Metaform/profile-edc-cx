@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{cpBaseUrl}}/v5beta/participants/{{consumer_id}}/contractnegotiations
+  url: {{cpBaseUrl}}/v5/participants/{{consumer_id}}/contractnegotiations
   body: json
   auth: inherit
 }
@@ -44,19 +44,19 @@ script:post-response {
   try {
       const json = res.getBody();
       const negotiationId = json["@id"];
-    
+
       if (negotiationId && typeof negotiationId === 'string') {
           bru.setVar('NEGOTIATION_ID', negotiationId);
           console.log('NegotiationId ID (NEGOTIATION_ID) is:', negotiationId);
       } else {
           console.warn('Policy ID not found in response at json["@id"]');
       }
-  
+
       // Optional: assertion to ensure it exists
       test('NegotiationId ID is present and stored', function () {
           expect(negotiationId, 'NegotiationId ID should exist').to.be.a('string').and.not.empty;
       });
-  
+
   } catch (e) {
       console.error('Failed to parse response or set NEGOTIATION_ID:', e);
       test('Response is valid JSON', function () {

@@ -13,7 +13,7 @@
 
 ## Publishes the datasets the TCK requires (cert_asset / bpn_asset / gov_asset) on the connector
 ## under test, each with its ODRL access/contract policy and a contract definition, via the JAD
-## controlplane /v5beta Management API. Runs as a pre-install/pre-upgrade Helm hook so it completes
+## controlplane /v5 Management API. Runs as a pre-install/pre-upgrade Helm hook so it completes
 ## before the cx-tck Job (a normal resource) is created. Auth is a jwtlet RFC-8693 token-exchange,
 ## the same mechanism charts/cx-profile/templates/edc-seed.yaml uses. Idempotent: HTTP 409 is
 ## treated as "already present".
@@ -60,7 +60,7 @@ spec:
             - sh
             - -c
             - |
-              until curl -s -o /dev/null "${EDC_BASE}/v5beta/dataspaceprofiles"; do
+              until curl -s -o /dev/null "${EDC_BASE}/v5/dataspaceprofiles"; do
                 echo "Waiting for EDC controlplane management API at ${EDC_BASE} ..."
                 sleep 5
               done
@@ -74,7 +74,7 @@ spec:
             - name: JWTLET_TOKEN_URL
               value: "http://{{ include "jadtx.fqdn" (dict "svc" "jwtlet" "ctx" $) }}:8080/token"
             - name: BASE
-              value: "v5beta/participants/{{ $participant }}"
+              value: "v5/participants/{{ $participant }}"
           volumeMounts:
             - name: jwtlet-subject-token
               mountPath: /var/run/secrets/jwtlet

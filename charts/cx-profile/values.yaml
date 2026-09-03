@@ -108,12 +108,12 @@ seedJobs:
     enabled: true
   dataspaceProfile:
     enabled: true
-  # Configures the cx-neptune dataspace profile on the EDC controlplane /v5beta
+  # Configures the cx-neptune dataspace profile on the EDC controlplane /v5
   # Management API (dataspace profile, JSON-LD contexts, DCP scopes, CEL expressions).
   edcSeed:
     enabled: true
     # In-cluster EDC controlplane Management API endpoint. The seed hits
-    # http://<service>.<namespace>.<clusterDomain>:<port><basePath>/v5beta/<resource>.
+    # http://<service>.<namespace>.<clusterDomain>:<port><basePath>/v5/<resource>.
     management:
       service: controlplane
       port: 8081

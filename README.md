@@ -80,7 +80,7 @@ The chart contains no long-running workloads — only idempotent Helm post-insta
 1. **Issuer credential definitions** — `MembershipCredential`, `BpnCredential` and
    `DataExchangeGovernanceCredential` on the issuer service.
 2. **Dataspace Profile** — registered in the tenant-manager and deployed onto the platform cell.
-3. **The `cx-neptune` connector profile** — posted to the controlplane `/v5beta` Management API:
+3. **The `cx-neptune` connector profile** — posted to the controlplane `/v5` Management API:
    the DataspaceProfile, cached JSON-LD contexts, the DCP scopes, and the three CEL expressions
    (Membership / FrameworkAgreement / BusinessPartnerNumber).
 

@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{cpBaseUrl}}/v5beta/participants/{{consumer_id}}/transferprocesses
+  url: {{cpBaseUrl}}/v5/participants/{{consumer_id}}/transferprocesses
   body: json
   auth: inherit
 }
@@ -27,13 +27,13 @@ script:post-response {
   try {
       const json = res.getBody();
       const transferProcessId = json['@id'];
-    
+
       if (transferProcessId && typeof transferProcessId === 'string') {
           bru.setVar('TRANSFER_ID', transferProcessId);
       } else {
           console.warn('Transfer Id not found');
       }
-  
+
   } catch (e) {
       console.error('Failed to parse response or set transfer id:', e);
       test('Response is valid JSON', function () {

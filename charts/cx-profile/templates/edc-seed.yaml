@@ -12,7 +12,7 @@
 #
 
 ## Configures the Catena-X dataspace profile (cx-neptune) on the EDC controlplane via its
-## /v5beta Management API: the DataspaceProfile, its cached JSON-LD contexts, the DCP scopes
+## /v5 Management API: the DataspaceProfile, its cached JSON-LD contexts, the DCP scopes
 ## and the CEL policy expressions. Runs after issuer-credentials-seed (110) and
 ## dataspace-profile-seed (120). Weights start at 110 so that, installed as a subchart of the
 ## cx-ve umbrella, these seeds run after the platform's own hooks (weights 10/20) in the
@@ -60,7 +60,7 @@ spec:
             - sh
             - -c
             - |
-              until curl -s -o /dev/null "${EDC_BASE}/v5beta/dataspaceprofiles"; do
+              until curl -s -o /dev/null "${EDC_BASE}/v5/dataspaceprofiles"; do
                 echo "Waiting for EDC controlplane management API at ${EDC_BASE} ..."
                 sleep 5
               done
@@ -91,10 +91,10 @@ spec:
               }
 
               # seed <label> <endpoint>  — POSTs the JSON body read from stdin to
-              # $EDC_BASE/v5beta/<endpoint>. Uses --data @- so single quotes inside the CEL
+              # $EDC_BASE/v5/<endpoint>. Uses --data @- so single quotes inside the CEL
               # expressions don't break shell quoting. HTTP 409 is tolerated (already present).
               seed() {
-                RESP=$(curl -s -w "\n%{http_code}" -X POST "${EDC_BASE}/v5beta/$2" \
+                RESP=$(curl -s -w "\n%{http_code}" -X POST "${EDC_BASE}/v5/$2" \
                   -H "Authorization: Bearer ${EXCHANGED_TOKEN}" \
                   -H "Content-Type: application/json" \
                   --data @-)
@@ -111,22 +111,22 @@ spec:
               }
 
               # upsert <label> <endpoint>  — like seed(), but on 409 it PUTs the same body back to
-              # $EDC_BASE/v5beta/<endpoint> so the desired state wins on a helm upgrade rather than
+              # $EDC_BASE/v5/<endpoint> so the desired state wins on a helm upgrade rather than
               # the copy created by the first install. Used for the dataspace profile, whose
               # trustedIssuers must be able to change (see issuer.trustedIssuers in values.yaml).
               # The body is buffered in a variable because it has to be sent twice, unlike seed(),
               # which streams stdin once via --data @-.
               upsert() {
                 BODY=$(cat)
-                do_curl -X POST "${EDC_BASE}/v5beta/$2" \
+                do_curl -X POST "${EDC_BASE}/v5/$2" \
                   -H "Authorization: Bearer ${EXCHANGED_TOKEN}" \
                   -H "Content-Type: application/json" \
                   --data "$BODY"
                 if [ "$RESP_STATUS" -eq 409 ]; then
-                  # PUT /v5beta/<endpoint> takes the name from the body and answers 204. It needs a
+                  # PUT /v5/<endpoint> takes the name from the body and answers 204. It needs a
                   # controlplane that has the update endpoint; older builds answer 405 and this
                   # fails loudly rather than silently keeping the stale profile.
-                  do_curl -X PUT "${EDC_BASE}/v5beta/$2" \
+                  do_curl -X PUT "${EDC_BASE}/v5/$2" \
                     -H "Authorization: Bearer ${EXCHANGED_TOKEN}" \
                     -H "Content-Type: application/json" \
                     --data "$BODY"

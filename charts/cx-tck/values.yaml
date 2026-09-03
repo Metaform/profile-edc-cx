@@ -149,7 +149,7 @@ seed:
   backoffLimit: 5
 
   # JAD controlplane Management API. Base = http://<service>.<ns>.<clusterDomain>:<port><basePath>,
-  # resources under /v5beta/participants/<participant>/<resource>.
+  # resources under /v5/participants/<participant>/<resource>.
   management:
     service: controlplane
     port: 8081

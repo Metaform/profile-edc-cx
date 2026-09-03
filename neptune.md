@@ -55,7 +55,7 @@ A dataspace profile can be either configured via `DataspaceProfileConfigurationE
 
 
 ```http
-POST /v5beta/dataspaceprofiles HTTP/1.1
+POST /v5/dataspaceprofiles HTTP/1.1
 Content-Type: application/json
 {
   "@context": [
@@ -110,7 +110,7 @@ The recommended way is via the management API for getting the current associated
 without restarting the runtime. The example below associates the `cx-neptune`
 
 ```http
-POST /v5beta/participantcontexts/{participantContextId}/profiles
+POST /v5/participantcontexts/{participantContextId}/profiles
 Content-Type: application/json
 
 {
@@ -128,7 +128,7 @@ setting the runtime-wide `dspEnableAllProfiles` flag; production deployments SHO
 For getting the current profiles associated with a participant, send a GET to the same endpoint:
 
 ```http
-GET /v5beta/participantcontexts/{participantContextId}/profiles
+GET /v5/participantcontexts/{participantContextId}/profiles
 ```
 
 will return a list of profile ids currently associated with that participant.
@@ -168,7 +168,7 @@ The DCP scope can be configured via `DynamicDcpScopeConfigurationExtension` or u
 MembershipCredential scope
 
 ```http
-POST /v5beta/dcpscopes
+POST /v5/dcpscopes
 Content-Type: application/json
 
 {
@@ -185,7 +185,7 @@ Content-Type: application/json
 BpnCredential scope
 
 ```http
-POST /v5beta/dcpscopes
+POST /v5/dcpscopes
 Content-Type: application/json
 
 {
@@ -202,7 +202,7 @@ Content-Type: application/json
 DataExchangeGovernanceCredential scope
 
 ```http
-POST /v5beta/dcpscopes
+POST /v5/dcpscopes
 Content-Type: application/json
 
 {
@@ -290,10 +290,10 @@ Catena-X credential model are considered before the type and claim checks are ap
 
 ### 5.1 Expression payloads
 
-Each expression below is the JSON-LD body to POST to the v5beta Management API:
+Each expression below is the JSON-LD body to POST to the v5 Management API:
 
 ```
-POST /v5beta/celexpressions
+POST /v5/celexpressions
 Content-Type: application/json
 ```
 
@@ -322,7 +322,7 @@ Assumed credential:
 CEL expression example:
 
 ```http
-POST /v5beta/celexpressions
+POST /v5/celexpressions
 Content-Type: application/json
 {
   "@context": [
@@ -362,7 +362,7 @@ Assumed credential (right-operand format mirrors the cx-odrl-profile example, e.
 CEL expression:
 
 ```http
-POST /v5beta/celexpressions HTTP/1.1
+POST /v5/celexpressions HTTP/1.1
 Content-Type: application/json
 {
   "@context": [
@@ -401,7 +401,7 @@ Assumed credential:
 Cel expression:
 
 ```http
-POST /v5beta/celexpressions
+POST /v5/celexpressions
 Content-Type: application/json
 {
   "@context": [
@@ -512,7 +512,7 @@ EDC does not load external contexts by default. We can either configure EDC at b
 The JSON-LD context cache API can be used to cache context files on the EDC side.
 
 ```http
-POST /v5beta/jsonldcontexts HTTP/1.1
+POST /v5/jsonldcontexts HTTP/1.1
 Content-Type: application/json
 {
   "@context": [
@@ -526,7 +526,7 @@ Content-Type: application/json
 and 
 
 ```http
-POST /v5beta/jsonldcontexts HTTP/1.1
+POST /v5/jsonldcontexts HTTP/1.1
 Content-Type: application/json
 {
   "@context": [
