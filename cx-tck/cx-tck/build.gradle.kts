@@ -28,7 +28,9 @@ dependencies {
     // the composing launcher and the test cases
     api(project(":cx-system"))
     api(project(":cx-catalog"))
+    api(project(":cx-usecase"))
     api(project(":cx-flow"))
+    api(project(":cx-ccm"))
 
     implementation(libs.junit.platform.launcher)
 }

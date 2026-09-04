@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "certificate-push-schema.json",
+  "$comment": "CX-0135 v2.4.0 POST /companycertificate/push request body, derived from components.schemas.CertificatePush. The content schema is the vendored BusinessPartnerCertificate 3.1.0 model; the source document references it over the network, which the TCK must not do at validation time.",
+  "title": "CCM v2.4.0 certificate push",
+  "type": "object",
+  "required": ["header", "content"],
+  "properties": {
+    "header": { "$ref": "feedback-url-header-schema.json" },
+    "content": { "$ref": "business-partner-certificate-3.1.0-schema.json" }
+  }
+}

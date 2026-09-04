@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "header-schema.json",
+  "$comment": "CX-0135 v2.4.0 message header, derived from the Company Certificate Notification API OpenAPI document (components.schemas.Header).",
+  "title": "CCM v2.4.0 message header",
+  "type": "object",
+  "required": ["context", "messageId", "senderBpn", "receiverBpn", "sentDateTime", "version"],
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "description": "A UUIDv4 uniquely identifying the message, with an optional urn:uuid: prefix.",
+      "pattern": "^(?:urn:uuid:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "context": {
+      "type": "string",
+      "description": "Discriminates the message type.",
+      "enum": [
+        "CompanyCertificateManagement-CCMAPI-Request:1.0.0",
+        "CompanyCertificateManagement-CCMAPI-Push:1.0.0",
+        "CompanyCertificateManagement-CCMAPI-Status:1.0.0",
+        "CompanyCertificateManagement-CCMAPI-Available:1.0.0"
+      ]
+    },
+    "sentDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp at which the message was sent."
+    },
+    "senderBpn": {
+      "type": "string",
+      "pattern": "^BPNL[a-zA-Z0-9]{12}$"
+    },
+    "receiverBpn": {
+      "type": "string",
+      "pattern": "^BPNL[a-zA-Z0-9]{12}$"
+    },
+    "relatedMessageId": {
+      "type": "string",
+      "pattern": "^(?:urn:uuid:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "version": {
+      "type": "string",
+      "$comment": "Deviation from the source document, which leaves the '.' separators unescaped so its pattern matches almost any string. Escaped here so the check is meaningful.",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9A-Za-z-][0-9A-Za-z-]*)(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+    }
+  }
+}

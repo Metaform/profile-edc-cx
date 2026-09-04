@@ -1,0 +1,64 @@
+{
+  "@id": "urn:uuid:5f1a0f2c-0c5e-4c9a-9c2f-7c6f3f9b1a11",
+  "@type": [ "http://www.w3.org/ns/dcat#Catalog" ],
+  "https://w3id.org/dspace/2025/1/participantId": [ { "@value": "BPNL000000000CUT" } ],
+  "http://www.w3.org/ns/dcat#dataset": [
+    {
+      "@id": "ccm_api_asset",
+      "@type": [ "http://www.w3.org/ns/dcat#Dataset" ],
+      "http://purl.org/dc/terms/type": [ { "@id": "https://w3id.org/catenax/taxonomy#CCMAPI" } ],
+      "http://purl.org/dc/terms/subject": [ { "@id": "https://w3id.org/catenax/taxonomy#CompanyCertificateManagementNotificationApi" } ],
+      "http://purl.org/dc/terms/description": [ { "@value": "Company Certificate Management notification API" } ],
+      "https://w3id.org/catenax/ontology/common#version": [ { "@value": "3.0" } ],
+      "http://www.w3.org/ns/odrl/2/hasPolicy": [
+        {
+          "@id": "ccm-offer-1",
+          "@type": [ "http://www.w3.org/ns/odrl/2/Offer" ],
+          "http://www.w3.org/ns/odrl/2/permission": [
+            {
+              "http://www.w3.org/ns/odrl/2/action": [ { "@id": "http://www.w3.org/ns/odrl/2/use" } ],
+              "http://www.w3.org/ns/odrl/2/constraint": [
+                {
+                  "http://www.w3.org/ns/odrl/2/and": [
+                    {
+                      "http://www.w3.org/ns/odrl/2/leftOperand": [ { "@id": "https://w3id.org/catenax/2025/9/policy/FrameworkAgreement" } ],
+                      "http://www.w3.org/ns/odrl/2/operator": [ { "@id": "http://www.w3.org/ns/odrl/2/eq" } ],
+                      "http://www.w3.org/ns/odrl/2/rightOperand": [ { "@value": "DataExchangeGovernance:1.0" } ]
+                    },
+                    {
+                      "http://www.w3.org/ns/odrl/2/leftOperand": [ { "@id": "https://w3id.org/catenax/2025/9/policy/UsagePurpose" } ],
+                      "http://www.w3.org/ns/odrl/2/operator": [ { "@id": "http://www.w3.org/ns/odrl/2/isAnyOf" } ],
+                      "http://www.w3.org/ns/odrl/2/rightOperand": [ { "@value": "cx.ccm.base:1" } ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@id": "ccm_cert_iso9001_asset",
+      "@type": [ "http://www.w3.org/ns/dcat#Dataset" ],
+      "http://purl.org/dc/terms/type": [ { "@id": "https://w3id.org/catenax/taxonomy#Submodel" } ],
+      "http://purl.org/dc/terms/subject": [ { "@id": "https://w3id.org/catenax/taxonomy#CompanyCertificate" } ],
+      "http://purl.org/dc/terms/certificateType": [ { "@id": "https://w3id.org/catenax/taxonomy#iso9001" } ],
+      "http://purl.org/dc/terms/enclosedSites": [
+        {
+          "@list": [
+            { "@id": "https://w3id.org/catenax/taxonomy#BPNS000000000001" },
+            { "@id": "https://w3id.org/catenax/taxonomy#BPNA000000000002" }
+          ]
+        }
+      ],
+      "https://w3id.org/catenax/ontology/common#version": [ { "@value": "3.0" } ]
+    },
+    {
+      "@id": "unrelated_asset",
+      "@type": [ "http://www.w3.org/ns/dcat#Dataset" ],
+      "http://purl.org/dc/terms/type": [ { "@id": "https://w3id.org/catenax/taxonomy#Submodel" } ],
+      "https://w3id.org/catenax/ontology/common#version": [ { "@value": "1.0" } ]
+    }
+  ]
+}

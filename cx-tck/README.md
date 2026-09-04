@@ -40,10 +40,33 @@ launcher, so cx-tck provides a composing one:
 
 | Module       | Purpose                                                                                                                                        |
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| `cx-api`     | Shared API: the CX annotations, `CxFunctions`/`DatasetQuery` catalog discovery, `CxPolicies`, and the `Edr` + `DataPlaneRequests` use-case primitives. |
 | `cx-system`  | `CxSystemLauncher` — the composing launcher (DSP exchange + DCP identity).                                                                     |
 | `cx-catalog` | The catalog test cases (`CxCatalog01Test`), discovered by package scan.                                                                        |
 | `cx-flow`    | The end-to-end flow test cases: `CxFlow01Test` (catalog → negotiation → transfer) and `CxRenewalFlow01Test` (transfer → OAuth2 token renewal). |
-| `cx-runtime` | The runnable suite (`CxTckSuite`), packaged as `cx-tck-runtime.jar`.                                                                           |
+| `cx-usecase` | The foundation for verifying Catena-X **use-case** standards above DSP: `AbstractCxUseCaseTest` (EDR establishment) and JSON-Schema validation. |
+| `cx-ccm`     | CX-0135 Company Certificate Management test cases (`CxCcm00Test`…`CxCcm03Test`), currently covering the v2.4.0 push.                           |
+| `cx-tck`     | The runnable suite (`CxTckSuite`), packaged as `cx-tck-runtime.jar`.                                                                           |
+
+### Verifying a use case
+
+The suites above verify the *connector*. A Catena-X **use-case** standard sits on top: it defines an
+application API and the messages exchanged over it, and leaves reaching that API to DSP. `cx-usecase`
+is the layer that expresses this — `AbstractCxUseCaseTest.establishEdr(...)` drives catalog →
+negotiation → transfer and hands back an `Edr` (endpoint + token), and `DataPlaneRequests` calls the
+application API through it.
+
+Two things differ from the connector suites and are worth knowing before writing a use-case test:
+
+- **Assets are discovered by property, not by id.** Use-case standards classify their assets with
+  taxonomy properties (`dct:type`, `dct:subject`, `cx-common:version`), so a test describes the asset
+  it needs with a `DatasetQuery` instead of being handed a configured dataset id. `CxFunctions`
+  handles the expanded-JSON-LD shapes a connector may emit, including the `@list` wrapper EDC puts
+  around array-valued properties.
+- **Payloads are checked against the standard's own JSON Schema.** `JsonSchemas` validates
+  application messages against schemas shipped on the classpath. Schemas are never fetched over the
+  network — an in-cluster run may have no egress at all — so any externally referenced schema is
+  vendored (see [Vendored schemas](#vendored-schemas)).
 
 ## Building
 
@@ -219,9 +242,97 @@ where `<BPN>` is the BPN of TCK connector configured in the TCK properties as `d
 }
 ```
 
+### CCM Usage Policy (CX-0135)
+
+The Company Certificate Management offer must additionally carry the CCM usage purpose. This is the
+value most often wrong in a deployment: another use case's purpose (`cx.pcf.base:1` and friends) is
+easy to copy across, and nothing else in the exchange notices — only `CX_CCM:01-02` does.
+
+```json
+{
+  "@type": "Set",
+  "permission": [
+    {
+      "action": "use",
+      "constraint": [
+        {
+          "and": [
+            {
+              "leftOperand": "FrameworkAgreement",
+              "operator": "eq",
+              "rightOperand": "DataExchangeGovernance:1.0"
+            },
+            {
+              "leftOperand": "UsagePurpose",
+              "operator": "isAnyOf",
+              "rightOperand": "cx.ccm.base:1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Required CCM asset
+
+For the CX-0135 suites the TCK acts as the **Certificate Provider** and the connector under test as
+the **Certificate Consumer**. CX-0135 splits its four endpoints across two EDC assets by role, and a
+Certificate Consumer is the side that offers `/companycertificate/push` and
+`/companycertificate/available` — so the connector under test must publish a notification API asset
+carrying the §2.1.4.1 classification:
+
+```json
+{
+  "@context": [
+    "https://w3id.org/edc/connector/management/v2",
+    {
+      "cx-common": "https://w3id.org/catenax/ontology/common#",
+      "cx-taxo": "https://w3id.org/catenax/taxonomy#",
+      "dct": "http://purl.org/dc/terms/"
+    }
+  ],
+  "@type": "Asset",
+  "@id": "ccm_api_asset",
+  "dataAddress": {
+    "@type": "DataAddress",
+    "type": "HttpData",
+    "baseUrl": "<base url of the CX-0135 v2.4.0 consumer implementation>",
+    "proxyPath": "true",
+    "proxyMethod": "true",
+    "proxyBody": "true"
+  },
+  "properties": {
+    "dct:type": { "@id": "cx-taxo:CCMAPI" },
+    "dct:subject": { "@id": "cx-taxo:CompanyCertificateManagementNotificationApi" },
+    "cx-common:version": "3.0"
+  }
+}
+```
+
+> **`proxyPath`, `proxyMethod` and `proxyBody` must all be `true`.** With the defaults the data plane
+> rewrites the TCK's `POST /companycertificate/push` into a bodyless `GET` of the base URL, so the
+> push never reaches the notification API and every `CX_CCM:02-*` test fails for a reason that has
+> nothing to do with CX-0135. The suite detects a 404 or 405 and says so explicitly.
+
+The **certificates themselves are shipped inside the TCK** and sent on the wire, so nothing else has
+to be seeded: no certificate assets, no certificate store, no fixture server.
+
+## Vendored schemas
+
+`cx-ccm/src/main/resources/ccm/v240/schema/business-partner-certificate-3.1.0-schema.json` is a
+checked-in copy of the published `io.catenax.business_partner_certificate` 3.1.0 JSON Schema, taken
+from `eclipse-tractusx/sldt-semantic-models`. The CX-0135 API document references it by URL; resolving
+that at validation time would make a conformance run depend on an external host being reachable, which
+an in-cluster Job may not be. The file records its source commit and date in a `$comment`; refresh it
+from upstream when the semantic model is versioned. `CcmSchemaTest` asserts no schema under
+`ccm/v240/` references a remote document.
+
 ## Status
 
-Three suites of mandatory test cases, all combining DSP exchange with DCP identity.
+Connector suites combining DSP exchange with DCP identity, plus a use-case suite verifying
+CX-0135 Company Certificate Management on top of them.
 
 ### Catalog requests (`CxCatalog01Test`)
 
@@ -276,6 +387,81 @@ the original grant.
 Both cases require a real DCP identity and real renewal properties in the data address, neither of
 which the in-memory connector provides, so they are **skipped in the local self-test** and run only
 against a real connector under test.
+
+### Company Certificate Management, CX-0135 v2.4.0 (`cx-ccm`)
+
+Verifies a **CX-0135 Certificate Consumer**. The TCK plays the Certificate Provider: it discovers the
+connector's notification API asset by its taxonomy properties, negotiates a contract, starts a
+transfer, and delivers a `BusinessPartnerCertificate` 3.1.0 through the resulting EDR. See
+[Required CCM asset](#required-ccm-asset) for what the connector must publish.
+
+#### Suite self-verification (`CxCcm00Test`)
+
+| Test ID        | Verifies                                                                                                          | Expected result |
+|----------------|-------------------------------------------------------------------------------------------------------------------|-----------------|
+| `CX_CCM:00-01` | The certificates and messages the TCK will send satisfy the CX-0135 v2.4.0 schemas, and a malformed one does not | Pass            |
+
+Needs no connector, so this is the one CCM test that **runs in the local self-test** — which is what
+makes the self-test meaningful for this suite: it proves the module is on the runtime classpath and
+that the payloads the TCK puts on the wire are themselves conformant.
+
+#### Asset and policy conformance (`CxCcm01Test`)
+
+Catalog-only — no negotiation, no transfer. The cheapest signal in the suite, and the first thing to
+check when a push test fails.
+
+| Test ID        | Verifies                                                                                                                        | Expected result | Spec      |
+|----------------|-----------------------------------------------------------------------------------------------------------------------------------|-----------------|-----------|
+| `CX_CCM:01-01` | The notification API asset carries `dct:type cx-taxo:CCMAPI`, `dct:subject cx-taxo:CompanyCertificateManagementNotificationApi` and `cx-common:version` | Asset found and classified | §2.1.4.1 |
+| `CX_CCM:01-02` | Its offer constrains `UsagePurpose isAnyOf cx.ccm.base:1` **and** `FrameworkAgreement eq DataExchangeGovernance:1.0`            | Both constraints present | §2.1.7 |
+| `CX_CCM:01-03` | No two CCM API datasets share a (`dct:subject`, `cx-common:version`) pair                                                       | No duplicates   | §2.1.4.1 |
+
+`CX_CCM:01-03` is a partial check: §2.1.4.1 states the rule across *all connectors of one BPNL*, and a
+TCK observes a single catalog, so it can only verify uniqueness within the catalog under test.
+
+#### Embedded certificate push (`CxCcm02Test`)
+
+Each case differs only in the certificate it carries. Together they span the payload dimensions the
+official CX-0135 test cases distinguish, so they show the receiver handles the whole 3.1.0 shape
+rather than only the easy case.
+
+| Test ID        | Certificate pushed                                    | Expected result | Why it is distinct                                                        |
+|----------------|-------------------------------------------------------|-----------------|---------------------------------------------------------------------------|
+| `CX_CCM:02-01` | ISO 9001, one enclosed site, currently valid          | `2xx`           | the baseline delivery                                                     |
+| `CX_CCM:02-02` | `enclosedSites` mixing one BPNS with two BPNA         | `2xx`           | 3.1.0 widened `enclosedSites` to accept BPNA; a BPNS-only receiver fails here |
+| `CX_CCM:02-03` | `validUntil` in the past                              | `2xx`           | expiry is certificate data, not a transport condition — v2.4.0 gives no way to decline delivery over it |
+| `CX_CCM:02-04` | `validUntil` = `9999-12-31`                           | `2xx`           | a date parser that rejects year 9999 fails here and nowhere else          |
+
+The assertion is `2xx`, not exactly `200` with an empty body: CX-0135 specifies 200/no body, but a
+receiver that returns an acknowledgement body is not non-conformant in a way worth failing over.
+
+#### Push envelope error handling (`CxCcm03Test`)
+
+| Test ID        | Message sent                                     | Expected result |
+|----------------|--------------------------------------------------|-----------------|
+| `CX_CCM:03-01` | header omits `messageId`                         | not `2xx`       |
+| `CX_CCM:03-02` | `senderBpn` is not a BPNL                        | not `2xx`       |
+| `CX_CCM:03-03` | `header.context` is the Status context           | not `2xx`       |
+| `CX_CCM:03-04` | no certificate content                           | not `2xx`       |
+
+**Not mandatory, deliberately.** CX-0135 v2.4.0 documents only `200` and `500` for the push endpoint —
+`400` appears solely on `/companycertificate/request` — so the standard does not oblige a receiver to
+answer a malformed push with any particular status. These tests therefore assert only that a message
+violating the specification's own schema is not acknowledged as accepted, and report the status that
+came back. A conformance suite should not invent requirements the standard does not state; the gap is
+worth raising with the standardisation body instead.
+
+#### Not covered
+
+- **The `/companycertificate/status` feedback leg.** The official cases TC-CCM-03/04/05 continue with
+  the consumer marking the certificate accepted or rejected and reporting back. That message travels
+  consumer → provider, so it arrives *at* the TCK, which requires the TCK to act as a DSP provider.
+  Consequently those three cases are covered here only up to the delivery.
+- **`/companycertificate/available`.** Same asset and same direction as the push — the natural next
+  increment.
+- **Verifying a CX-0135 Certificate *Provider*.** That is the mirror direction: the TCK would receive
+  the push, which needs TCK-as-DSP-provider plus a way to tell the provider to publish — something
+  CX-0135 does not define.
 
 Follow-ups: transfer completion and the remaining Catena-X profile specifics (CEL policy operands,
 JSON-Schema policy validation) described in [`../neptune.md`](../neptune.md).

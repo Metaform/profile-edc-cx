@@ -18,6 +18,7 @@ plugins {
 
 dependencies {
     api(project(":cx-api"))
+    api(project(":cx-usecase"))
 
     // test classes live in src/main so they ship in the jar and are discovered by TckRuntime package scan
     implementation(libs.tck.common.api)

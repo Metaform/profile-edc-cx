@@ -1,0 +1,37 @@
+{
+  "businessPartnerNumber": "BPNL000000000CUT",
+  "type": {
+    "certificateType": "iso9001",
+    "certificateVersion": "2015"
+  },
+  "registrationNumber": "CX-TCK-SET3-MIXEDSITES",
+  "areaOfApplication": "Development, Production",
+  "enclosedSites": [
+    {
+      "enclosedSiteBpn": "BPNS000000000001",
+      "areaOfApplication": "Production"
+    },
+    {
+      "enclosedSiteBpn": "BPNA000000000002",
+      "areaOfApplication": "Warehouse"
+    },
+    {
+      "enclosedSiteBpn": "BPNA000000000003",
+      "areaOfApplication": "Marketing"
+    }
+  ],
+  "validFrom": "2024-01-01",
+  "validUntil": "2030-12-31",
+  "issuer": {
+    "issuerName": "CX TCK Certification Body",
+    "issuerBpn": "BPNL0000000ISSUE"
+  },
+  "trustLevel": "high",
+  "uploader": "BPNL000000000CUT",
+  "document": {
+    "creationDate": "2025-01-15T09:00:00Z",
+    "documentID": "cx-tck-set3-document",
+    "contentType": "application/pdf",
+    "contentBase64": "JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgMjAwIDEwMF0+PmVuZG9iagp0cmFpbGVyPDwvUm9vdCAxIDAgUj4+CiUlRU9GCg=="
+  }
+}
