@@ -100,9 +100,27 @@ tck:
     # The connector-under-test's own verifier DID (on identityhub), NOT hosted by the TCK.
     verifier: "did:web:identityhub.edc-v.svc.cluster.local%3A7083:provider"
 
-  bpn: "BPNL00000003TCK"
+  bpn: "BPNL0000000001TC"
   # vcScopePattern: "(org.eclipse.tractusx.vc.type):(?<type>.*):(.*)"
   vcScopePattern: "(org.eclipse.dspace.dcp.vc.type):(?<type>.*):(.*)"
+
+  # JUnit tag filters applied to the run. Empty (the default) runs every suite. Set exclude to a
+  # comma-separated list to skip suites a connector under test does not implement, e.g.
+  #   --set tck.filters.tags.exclude=cx-ccm-v240
+  #
+  # Tags in use:
+  #   cx-cat            catalog requests (CxCatalog01Test)
+  #   cx-flow           end-to-end flows (CxFlow01Test, CxRenewalFlow01Test)
+  #   cx-renewal-flow   token renewal only (CxRenewalFlow01Test)
+  #   cx-ccm            all CX-0135 Company Certificate Management cases
+  #   cx-ccm-v240       the CX-0135 v2.4.0 cases specifically
+  #   cx-ccm-negative   the non-mandatory push error-handling cases (CxCcm03Test)
+  #   base-compliance   every mandatory suite, across areas
+  #   cx-usecase        NOT a CCM-only tag - it sits on AbstractCxUseCaseTest, which the flow and
+  #                     renewal suites also extend, so excluding it drops those too
+  filters:
+    tags:
+      exclude: ""
 
   datasets:
     # Catalog request tests (CxCatalog01Test).
@@ -118,6 +136,20 @@ tck:
     renewal0101Format: HttpData-PULL
     renewal0102Id: gov_asset
     renewal0102Format: HttpData-PULL
+
+  # CX-0135 Company Certificate Management, v2.4.0 (CxCcm00Test..CxCcm03Test).
+  #
+  # Here the TCK acts as the CERTIFICATE PROVIDER and the connector under test as the CERTIFICATE
+  # CONSUMER: the TCK discovers the connector's CCM notification API asset by its taxonomy
+  # properties (never by id, so there is no dataset id to configure), negotiates for it, and pushes
+  # a BusinessPartnerCertificate 3.1.0 through the resulting EDR. The certificates are shipped
+  # inside the TCK, so nothing has to be seeded for them.
+  ccm:
+    # BPN of the connector under test, sent as header.receiverBpn. tck.bpn is sent as senderBpn.
+    receiverBpn: "BPNL0000000000CU"
+    # Transfer distribution format requested for the CCM asset. Note this differs from the flow
+    # tests' HTTP-PULL default: the seeded CCM asset below is offered as HttpData-PULL.
+    format: HttpData-PULL
 
   # EC P-256 JWK used for both the holder and issuer keys. It is normalized to a single
   # compact JSON line when rendered into the Java .properties config (helm fromJson|toJson),
@@ -181,3 +213,19 @@ seed:
     cert: cert_asset
     bpn: bpn_asset
     gov: gov_asset
+    # CX-0135 notification API asset. Discovered by its taxonomy properties, not by this id.
+    ccmApi: ccm_api_asset
+
+  # CX-0135 Company Certificate Management seeding.
+  ccm:
+    enabled: true
+    # Backend the notification API asset fronts, i.e. what receives /companycertificate/push.
+    # The dummy seed.dataAddress above is NOT usable here: the push tests assert on the response,
+    # so this must point at a real CX-0135 v2.4.0 consumer implementation.
+    baseUrl: "http://cx-ve-certo.edc-v.svc.cluster.local:8080"
+    # CX-0135 section 2.1.4.1 asset classification.
+    version: "3.0"
+    # CX-0135 section 2.1.7 usage purpose. Getting this wrong is the most likely first failure:
+    # another use case's purpose (cx.pcf.base:1 and friends) is easy to copy across by mistake,
+    # and nothing in the exchange notices - only CX_CCM:01-02 does.
+    usagePurpose: "cx.ccm.base:1"

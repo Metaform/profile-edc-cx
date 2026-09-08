@@ -1,0 +1,29 @@
+{
+  "businessPartnerNumber": "BPNL000000000CUT",
+  "type": {
+    "certificateType": "iatf16949",
+    "certificateVersion": "2016"
+  },
+  "registrationNumber": "CX-TCK-SET4-EXPIRED",
+  "areaOfApplication": "Production",
+  "enclosedSites": [
+    {
+      "enclosedSiteBpn": "BPNS000000000001",
+      "areaOfApplication": "Production"
+    }
+  ],
+  "validFrom": "2018-01-01",
+  "validUntil": "2020-01-01",
+  "issuer": {
+    "issuerName": "CX TCK Certification Body",
+    "issuerBpn": "BPNL0000000ISSUE"
+  },
+  "trustLevel": "low",
+  "uploader": "BPNL000000000CUT",
+  "document": {
+    "creationDate": "2025-01-15T09:00:00Z",
+    "documentID": "cx-tck-set4-document",
+    "contentType": "application/pdf",
+    "contentBase64": "JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL1BhcmVudCAyIDAgUi9NZWRpYUJveFswIDAgMjAwIDEwMF0+PmVuZG9iagp0cmFpbGVyPDwvUm9vdCAxIDAgUj4+CiUlRU9GCg=="
+  }
+}

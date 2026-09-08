@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "feedback-url-header-schema.json",
+  "$comment": "CX-0135 v2.4.0 header carrying senderFeedbackUrl, derived from components.schemas.FeedbackUrlHeader. Used by push, status and available.",
+  "title": "CCM v2.4.0 message header with feedback URL",
+  "allOf": [
+    { "$ref": "header-schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "senderFeedbackUrl": {
+          "type": "string",
+          "description": "URL of the EDC DSP endpoint feedback is to be sent to."
+        }
+      }
+    }
+  ]
+}

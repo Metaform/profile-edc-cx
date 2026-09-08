@@ -197,6 +197,28 @@ spec:
                 }
               }
               JSON
+{{- if $seed.ccm.enabled }}
+              # CX-0135 section 2.1.4.1 notification API asset. Unlike the assets above this
+              # carries the Catena-X taxonomy classification the TCK discovers it by, and its data
+              # address must proxy the method, path and body: without those three the data plane
+              # rewrites the TCK's POST /companycertificate/push into a bodyless GET of the base
+              # URL, and every push test fails for a reason unrelated to CX-0135.
+              seed "asset {{ $seed.assets.ccmApi }}" "${BASE}/assets" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "Asset",
+                "@id": "{{ $seed.assets.ccmApi }}",
+                "properties": {
+                  "dct:type": { "@id": "https://w3id.org/catenax/taxonomy#CCMAPI" },
+                  "dct:subject": { "@id": "https://w3id.org/catenax/taxonomy#CompanyCertificateManagementNotificationApi" },
+                  "dct:description": "CX-0135 Company Certificate Management notification API",
+                  "https://w3id.org/catenax/ontology/common#version": "{{ $seed.ccm.version }}"
+                }
+              }
+              JSON
+{{- end }}
 
               echo ""
               echo "================================================"
@@ -261,6 +283,44 @@ spec:
                 }
               }
               JSON
+{{- if $seed.ccm.enabled }}
+              # CX-0135 section 2.1.7: every CCM offer must require the framework agreement AND the
+              # CCM usage purpose. CX_CCM:01-02 verifies exactly this pair.
+              seed "policy ccm_usage_policy" "${BASE}/policydefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2",
+                  "{{ $seed.policyContext }}"
+                ],
+                "@type": "PolicyDefinition",
+                "@id": "ccm_usage_policy",
+                "policy": {
+                  "@type": "Set",
+                  "permission": [
+                    {
+                      "action": "use",
+                      "constraint": [
+                        {
+                          "and": [
+                            {
+                              "leftOperand": "FrameworkAgreement",
+                              "operator": "eq",
+                              "rightOperand": "{{ $seed.frameworkAgreement }}"
+                            },
+                            {
+                              "leftOperand": "UsagePurpose",
+                              "operator": "isAnyOf",
+                              "rightOperand": "{{ $seed.ccm.usagePurpose }}"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+              JSON
+{{- end }}
               seed "policy gov_policy" "${BASE}/policydefinitions" <<'JSON'
               {
                 "@context": [
@@ -357,6 +417,27 @@ spec:
                 ]
               }
               JSON
+{{- if $seed.ccm.enabled }}
+              seed "contract definition ccm_cd" "${BASE}/contractdefinitions" <<'JSON'
+              {
+                "@context": [
+                  "https://w3id.org/edc/connector/management/v2"
+                ],
+                "@type": "ContractDefinition",
+                "@id": "ccm_cd",
+                "accessPolicyId": "membership_policy",
+                "contractPolicyId": "ccm_usage_policy",
+                "assetsSelector": [
+                  {
+                    "@type": "Criterion",
+                    "operandLeft": "https://w3id.org/edc/v0.0.1/ns/id",
+                    "operator": "=",
+                    "operandRight": "{{ $seed.assets.ccmApi }}"
+                  }
+                ]
+              }
+              JSON
+{{- end }}
 
               echo ""
               echo "================================================"

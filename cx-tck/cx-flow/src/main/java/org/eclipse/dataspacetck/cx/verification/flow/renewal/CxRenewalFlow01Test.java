@@ -26,7 +26,6 @@ import org.eclipse.dataspacetck.cx.runtime.CxRuntime;
 import org.eclipse.dataspacetck.cx.token.SelfIssuedTokenProvider;
 import org.eclipse.dataspacetck.cx.verification.flow.AbstractCxFlowTest;
 import org.eclipse.dataspacetck.dcp.system.annotation.IssueCredentials;
-import org.eclipse.dataspacetck.dsp.verification.cn.ProviderActions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import tools.jackson.databind.ObjectMapper;
@@ -35,10 +34,8 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNullElseGet;
 import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.BPN_CREDENTIAL_TYPE;
@@ -47,17 +44,8 @@ import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.GOV_CREDENTIAL_T
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.GOV_SCOPE;
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.MEMBERSHIP_CREDENTIAL_TYPE;
 import static org.eclipse.dataspacetck.cx.dcp.profile.CxProfile.MEMBERSHIP_SCOPE;
-import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractAccessToken;
-import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractAgreementId;
-import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractDataAddress;
-import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractOfferId;
 import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractRefreshEndpoint;
 import static org.eclipse.dataspacetck.cx.dsp.catalog.CxFunctions.extractRefreshToken;
-import static org.eclipse.dataspacetck.dsp.system.api.message.DcatConstants.DCAT_PROPERTY_DATASET_EXPANDED;
-import static org.eclipse.dataspacetck.dsp.system.api.message.catalog.CatalogFunctions.createCatalogRequest;
-import static org.eclipse.dataspacetck.dsp.system.api.statemachine.ContractNegotiation.State.AGREED;
-import static org.eclipse.dataspacetck.dsp.system.api.statemachine.ContractNegotiation.State.FINALIZED;
-import static org.eclipse.dataspacetck.dsp.system.api.statemachine.TransferProcess.State.STARTED;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
@@ -111,11 +99,11 @@ public class CxRenewalFlow01Test extends AbstractCxFlowTest {
         // token renewal requires real EDR renewal properties and a real DCP identity; both are absent in local self-test
         assumeFalse(CxRuntime.isLocalConnector(), "token renewal requires a real connector under test");
 
-        var dataAddress = runFlowToStartedDataAddress(catalogClient);
+        var edr = establishEdr(catalogClient, datasetId, format);
 
-        var refreshEndpoint = extractRefreshEndpoint(dataAddress);
-        var refreshToken = extractRefreshToken(dataAddress);
-        var accessToken = extractAccessToken(dataAddress);
+        var refreshEndpoint = extractRefreshEndpoint(edr.dataAddress());
+        var refreshToken = extractRefreshToken(edr.dataAddress());
+        var accessToken = edr.authorization();
         assertThat(refreshEndpoint).as("data address refreshEndpoint").isNotBlank();
         assertThat(refreshToken).as("data address refreshToken").isNotBlank();
 
@@ -153,10 +141,10 @@ public class CxRenewalFlow01Test extends AbstractCxFlowTest {
                                       SelfIssuedTokenProvider tokenProvider) throws IOException {
         assumeFalse(CxRuntime.isLocalConnector(), "token renewal requires a real connector under test");
 
-        var dataAddress = runFlowToStartedDataAddress(catalogClient);
+        var edr = establishEdr(catalogClient, datasetId, format);
 
-        var refreshEndpoint = extractRefreshEndpoint(dataAddress);
-        var accessToken = extractAccessToken(dataAddress);
+        var refreshEndpoint = extractRefreshEndpoint(edr.dataAddress());
+        var accessToken = edr.authorization();
 
         assertThat(refreshEndpoint).as("data address refreshEndpoint").isNotBlank();
 
@@ -169,57 +157,6 @@ public class CxRenewalFlow01Test extends AbstractCxFlowTest {
                 .as("token renewal with an invalid refresh token must be rejected, but got HTTP %s: %s",
                         response.code(), response.body())
                 .isFalse();
-    }
-
-    /**
-     * Runs the base flow (catalog -> contract negotiation FINALIZED -> transfer process STARTED) as
-     * {@code cx_flow_01_01} does, returning the data address carried in the provider's {@code TransferStartMessage}.
-     */
-    private Map<String, Object> runFlowToStartedDataAddress(CxDspCatalogClient catalogClient) {
-        // seed the in-memory catalog (used when running in local self-test mode)
-        providerConnector.getCatalogManager().addDataset(seedDataset(datasetId));
-
-        // 1) fetch the catalog and extract the real offer published for the dataset
-        var catalog = catalogClient.getCatalog(createCatalogRequest());
-        assertThat(catalog.get(DCAT_PROPERTY_DATASET_EXPANDED)).isNotNull();
-        var offerId = extractOfferId(catalog, datasetId);
-
-        // 2) negotiate the extracted offer through to FINALIZED, capturing the provider-issued agreement id
-        var agreementIdRef = new AtomicReference<String>();
-        negotiationMock.recordContractRequestedAction(ProviderActions::postAgreed);
-        negotiationMock.recordVerifiedAction(ProviderActions::postFinalized);
-
-        negotiationPipeline
-                .sendRequestMessage(datasetId, offerId)
-                .expectAgreementMessage(agreement -> {
-                    agreementIdRef.set(extractAgreementId(agreement));
-                    consumerConnector.getConsumerNegotiationManager().handleAgreement(agreement);
-                })
-                .thenWaitForState(AGREED)
-                .expectFinalizedEvent(event -> consumerConnector.getConsumerNegotiationManager().handleFinalized(event))
-                .sendVerifiedEvent()
-                .thenWaitForState(FINALIZED)
-                .execute();
-        negotiationMock.verify();
-
-        // 3) run a transfer against the negotiated agreement, capturing the data address from the start message
-        var agreementId = requireNonNullElseGet(agreementIdRef.get(), () -> randomUUID().toString());
-        var dataAddressRef = new AtomicReference<Map<String, Object>>();
-        transferProcessMock.recordTransferRequestedAction(AbstractCxFlowTest::postStartWithDataAddress);
-
-        transferProcessPipeline
-                .expectStartMessage(start -> {
-                    dataAddressRef.set(extractDataAddress(start));
-                    return consumerConnector.getConsumerTransferProcessManager().handleStart(start);
-                })
-                .sendTransferRequest(agreementId, format)
-                .thenWaitForState(STARTED)
-                .execute();
-        transferProcessMock.verify();
-
-        var dataAddress = dataAddressRef.get();
-        assertThat(dataAddress).as("transfer start data address").isNotNull();
-        return dataAddress;
     }
 
     /**

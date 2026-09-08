@@ -1,0 +1,8 @@
+debug:
+  enabled: false
+  suspendOnStart: false
+
+tck:
+  filters:
+    tags:
+      exclude: "cx-ccm-v240"
