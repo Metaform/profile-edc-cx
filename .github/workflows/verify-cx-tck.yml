@@ -1,0 +1,45 @@
+name: Verify cx-tck
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: verify-cx-tck-${{ github.ref }}
+  # cancel superseded PR runs, but let a push to main finish
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      # `build` compiles every module, runs checkstyle over main and test sources, the unit tests,
+      # and CxTckSuiteTest — which executes the whole TCK against the in-memory connector. Suites
+      # needing a real connector abort rather than fail, so this verifies wiring and payloads, not
+      # conformance of any deployed connector.
+      - name: Build and test
+        working-directory: cx-tck
+        run: ./gradlew build --no-daemon
+
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cx-tck-reports
+          path: |
+            cx-tck/**/build/reports/
+            cx-tck/**/build/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
