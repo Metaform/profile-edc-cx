@@ -14,6 +14,8 @@ edc:
         operator: "contains"
         rightOperand: "$1"
   siglet:
+    refreshEndpointPolicy:
+      allowHttp: true
     tokenApiAuth:
       enabled: true
       adminScope:
