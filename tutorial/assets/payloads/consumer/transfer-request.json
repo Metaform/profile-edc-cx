@@ -1,0 +1,8 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "TransferRequest",
+  "protocol": "${PROFILE}",
+  "counterPartyAddress": "${DSP_INTERNAL}/${PROVIDER_PCID}/${PROFILE}",
+  "contractId": "${AGREEMENT_ID}",
+  "transferType": "HttpData-PULL"
+}

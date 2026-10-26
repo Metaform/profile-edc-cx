@@ -1,0 +1,11 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "CelExpressionTestRequest",
+  "leftOperand": "${AURORA_VOCAB}DataAccess.level",
+  "expression": "this.rightOperand == 'processing'",
+  "operator": "EQ",
+  "rightOperand": "processing",
+  "params": {
+    "agent": { "id": "${CONSUMER_DID}" }
+  }
+}

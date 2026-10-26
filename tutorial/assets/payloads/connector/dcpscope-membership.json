@@ -1,0 +1,8 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "DcpScope",
+  "@id": "aurora-membership-scope",
+  "type": "DEFAULT",
+  "value": "org.eclipse.dspace.dcp.vc.type:MembershipCredential:read",
+  "profile": "${PROFILE}"
+}

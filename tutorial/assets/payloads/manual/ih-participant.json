@@ -1,0 +1,27 @@
+{
+  "participantContextId": "${PCID}",
+  "did": "${PARTICIPANT_DID}",
+  "active": true,
+  "roles": ["participant"],
+  "provisionStsAccount": false,
+  "provisionApiKey": false,
+  "serviceEndpoints": [
+    { "type": "CredentialService", "id": "${PCID}-credentialservice", "serviceEndpoint": "${BASE}/api/credentials/v1/participants/${PCID}" },
+    { "type": "ProtocolEndpoint",  "id": "${PCID}-dsp",               "serviceEndpoint": "${BASE}/api/dsp/${PCID}/${PROFILE}" },
+    { "type": "DataService",       "id": "${PCID}-dataservice",       "serviceEndpoint": "${BASE}/api/dsp/${PCID}/.well-known/dspace-version" }
+  ],
+  "key": {
+    "keyId": "${PARTICIPANT_DID}#key1",
+    "privateKeyAlias": "${PCID}-key1",
+    "keyGeneratorParams": { "algorithm": "EDDSA", "curve": "Ed25519" }
+  },
+  "additionalProperties": {
+    "edc.vault.hashicorp.config": {
+      "config": {
+        "vaultUrl": "${VAULT_URL}",
+        "secretPath": "v1/participants",
+        "folderPath": "${PCID}/identityhub"
+      }
+    }
+  }
+}

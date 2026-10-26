@@ -1,0 +1,7 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "CatalogRequest",
+  "protocol": "${PROFILE}",
+  "counterPartyAddress": "${DSP_INTERNAL}/${PROVIDER_PCID}/${PROFILE}",
+  "counterPartyId": "${PROVIDER_DID}"
+}

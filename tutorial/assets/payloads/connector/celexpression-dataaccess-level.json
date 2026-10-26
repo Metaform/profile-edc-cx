@@ -1,0 +1,9 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "CelExpression",
+  "@id": "aurora-dataaccess-level-expression",
+  "leftOperand": "${AURORA_VOCAB}DataAccess.level",
+  "description": "Aurora data access level: the counterparty's DataProcessorCredential.level equals the constraint's right operand.",
+  "scopes": ["catalog", "contract.negotiation", "transfer.process"],
+  "expression": "ctx.agent.claims.vc.withType('DataProcessorCredential').hasClaim('level', this.rightOperand)"
+}

@@ -1,0 +1,16 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "PolicyDefinition",
+  "@id": "aurora-contract-membership",
+  "policy": {
+    "@type": "Set",
+    "permission": [
+      {
+        "action": "use",
+        "constraint": [
+          { "leftOperand": "${AURORA_VOCAB}Membership", "operator": "eq", "rightOperand": "active" }
+        ]
+      }
+    ]
+  }
+}

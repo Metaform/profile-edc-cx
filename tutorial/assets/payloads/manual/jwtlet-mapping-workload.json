@@ -1,0 +1,6 @@
+{
+  "clientIdentifier": "system:serviceaccount:${NS}:${WORKLOAD_SA}",
+  "participantContext": "${PCID}",
+  "scopes": [],
+  "audiences": ["${TOKEN_AUDIENCE}"]
+}

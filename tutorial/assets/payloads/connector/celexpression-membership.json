@@ -1,0 +1,9 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "CelExpression",
+  "@id": "aurora-membership-expression",
+  "leftOperand": "${AURORA_VOCAB}Membership",
+  "description": "Aurora membership: the counterparty presents a MembershipCredential with memberOf = Aurora.",
+  "scopes": ["catalog", "contract.negotiation", "transfer.process"],
+  "expression": "ctx.agent.claims.vc.withType('MembershipCredential').hasClaim('memberOf', 'Aurora')"
+}

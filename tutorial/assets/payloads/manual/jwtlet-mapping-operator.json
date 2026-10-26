@@ -1,0 +1,16 @@
+{
+  "clientIdentifier": "system:serviceaccount:${NS}:redline",
+  "participantContext": "${PCID}",
+  "scopes": [
+    "management-api:admin",
+    "identity-api:admin",
+    "identity-api:credentials:read",
+    "identity-api:credentials:write",
+    "issuer-admin-api:admin",
+    "siglet-mgmt-api:read",
+    "siglet-mgmt-api:write",
+    "read",
+    "write"
+  ],
+  "audiences": ["${TOKEN_AUDIENCE}"]
+}

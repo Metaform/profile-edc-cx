@@ -1,0 +1,31 @@
+{
+  "identifier": "${PARTICIPANT_DID}",
+  "cellId": "${CELL_ID}",
+  "dataspaceProfileIds": ["${DATASPACE_ID}"],
+  "participantRoles": { "${DATASPACE_ID}": ["member"] },
+  "vpaProperties": {
+    "cfm.issuer": {
+      "id": "${PARTICIPANT_DID}",
+      "memberOf": "Aurora",
+      "level": "${ACCESS_LEVEL}"
+    },
+    "cfm.connector": {
+      "dataspaceProfiles": ["${PROFILE}"]
+    },
+    "cfm.dataplane": {
+      "authorization": { "type": "oauth2_token_exchange" },
+      "transferTypeMappings": {
+        "HttpData-PULL": {
+          "transferType": "HttpData-PULL",
+          "endpointType": "https://w3id.org/idsa/v4.1/HTTP",
+          "endpoint": "${BACKEND_PUBLIC_URL}",
+          "tokenSource": "provider",
+          "txRenewalSupport": false,
+          "claimMappings": [
+            { "from": "flow.claims.vc.withType('DataProcessorCredential').claim('level')", "to": "level" }
+          ]
+        }
+      }
+    }
+  }
+}

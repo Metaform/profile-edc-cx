@@ -30,6 +30,7 @@ there for the details.
 | Path | What it is |
 |------|------------|
 | [`neptune.md`](./neptune.md) | The full profile specification — protocol, DCP scopes, CEL expressions, JSON Schema validation, JSON-LD contexts. **Start here for technical detail.** |
+| [`tutorial/`](./tutorial) | **Tutorial: bootstrap a dataspace from scratch.** Designs a small fictional dataspace ("Aurora") and builds it on CPD: issuer, profile, DCP scopes, CEL, onboarding with and without CFM, and a backend shared through Siglet. |
 | [`charts/cx-profile/`](./charts/cx-profile) | Helm chart (`jad-catenax-profile`) that seeds the Catena-X profile onto a running platform. |
 | [`charts/tractusx/`](./charts/tractusx) | Optional wrapper chart deploying a [Tractus-X](https://github.com/eclipse-tractusx/tractusx-edc) EDC connector + an in-memory BPN-DID Resolution Service. |
 | [`cx-tck/`](./cx-tck) | Catena-X **Technology Compatibility Kit** — verifies a connector correctly implements the DSP exchange + DCP identity combination. See [`cx-tck/README.md`](./cx-tck/README.md). |
@@ -61,7 +62,7 @@ First, deploy the CPD platform itself:
 
 ```bash
 helm upgrade --install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
-    --version 0.0.17 \
+    --version 0.0.33 \
     --namespace edc-v --create-namespace \
     --wait --timeout 15m
 ```
@@ -136,7 +137,7 @@ namespace:
 ```bash
 helm upgrade --install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
               --namespace edc-v --create-namespace \
-              --version 0.0.17 \
+              --version 0.0.33 \
               -f platform-override-values.yaml \
               --wait --timeout 15m
 ```
@@ -242,7 +243,7 @@ to configure the siglet with the tractus-x renewal protocol support:
 
 ```bash
 helm upgrade -install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
-		--version 0.0.17 \
+		--version 0.0.33 \
     -f platform-override-values.yaml \
 		--namespace edc-v --create-namespace --wait --timeout 15m
 ```

@@ -1,0 +1,11 @@
+{
+  "artifacts": [],
+  "properties": { "name": "${PROFILE}" },
+  "dataspaceSpec": {
+    "protocolStack": ["dsp-2025-1", "dcp-2025-1"],
+    "credentialSpecs": [
+      { "id": "aurora-membership-def",    "type": "MembershipCredential",    "issuer": "${ISSUER_DID}", "format": "VC1_0_JWT" },
+      { "id": "aurora-dataprocessor-def", "type": "DataProcessorCredential", "issuer": "${ISSUER_DID}", "format": "VC1_0_JWT" }
+    ]
+  }
+}

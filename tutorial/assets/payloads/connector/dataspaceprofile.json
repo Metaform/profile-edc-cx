@@ -1,0 +1,17 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "DataspaceProfile",
+  "name": "${PROFILE}",
+  "protocol": {
+    "version": "2025-1",
+    "binding": "https",
+    "namespace": "https://w3id.org/dspace/2025/1/"
+  },
+  "jsonLdContextsUrl": [
+    "https://w3id.org/dspace/2025/1/context.jsonld",
+    "https://w3id.org/edc/dspace/v0.0.1"
+  ],
+  "trustedIssuers": [
+    { "@id": "${ISSUER_DID}", "supportedTypes": ["MembershipCredential", "DataProcessorCredential"] }
+  ]
+}

@@ -1,0 +1,1 @@
+{ "properties": { "name": "${TENANT_NAME}", "location": "eu" } }

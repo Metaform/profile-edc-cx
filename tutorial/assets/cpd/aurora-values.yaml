@@ -1,0 +1,38 @@
+# Core Platform Distribution overrides for the Aurora tutorial.
+#
+#   helm upgrade --install core-platform oci://ghcr.io/eclipse-cfm/charts/core-platform-distribution \
+#     -n edc-v --create-namespace -f tutorial/assets/cpd/aurora-values.yaml --wait --timeout 15m
+#
+# Everything not listed here keeps the CPD default (see the chart's values.yaml).
+
+global:
+  # Public hostname of the gateway. DIDs derive from it:
+  #   issuer:       did:web:issuer.cpd.localhost:issuer
+  #   participants: did:web:identity.cpd.localhost:<slug>
+  host: cpd.localhost
+
+edc:
+  controlplane:
+    dataspaceProfiles:
+      # The DSP endpoint each participant advertises in its DID document is
+      # <base>/api/dsp/<participantContextId>/<advertisedProfile>. It MUST equal the `name` of
+      # the DataspaceProfile we register in chapter 05, or counterparties get a 404.
+      advertisedProfile: aurora-2025
+
+  siglet:
+    # Local setup runs on plain http.
+    refreshEndpointPolicy:
+      allowHttp: true
+    # The consumer fetches its access token (EDR) from siglet's token API.
+    tokenApiAuth:
+      enabled: true
+      adminScope:
+        enabled: true
+    # Platform-wide fallback transfer type. Participants override the endpoint with their own
+    # transfer-type mappings during onboarding (chapters 06/07).
+    transferTypes:
+      - transferType: "HttpData-PULL"
+        endpointType: "https://w3id.org/idsa/v4.1/HTTP"
+        endpoint: "http://provider:8080/data"
+        tokenSource: "provider"
+        txRenewalSupport: false
