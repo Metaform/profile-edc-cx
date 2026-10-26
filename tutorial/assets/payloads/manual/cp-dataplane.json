@@ -1,0 +1,13 @@
+{
+  "dataplaneId": "${PCID}-siglet",
+  "transferTypes": ["HttpData-PULL"],
+  "endpoint": "http://siglet.${SVC}:8081/api/v1/${PCID}/dataflows",
+  "authorization": {
+    "type": "oauth2_token_exchange",
+    "tokenExchangeEndpoint": "http://jwtlet.${SVC}:8080",
+    "issuer": "http://jwtlet.${SVC}:8080",
+    "jwksUri": "http://jwtlet.${SVC}:8080/.well-known/jwks.json",
+    "resource": "${PCID}",
+    "scope": "signaling"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "ContractDefinition",
+  "@id": "aurora-docs-processing-cd",
+  "accessPolicyId": "aurora-access-processing",
+  "contractPolicyId": "aurora-contract-membership",
+  "assetsSelector": [
+    {
+      "@type": "Criterion",
+      "operandLeft": "id",
+      "operator": "=",
+      "operandRight": "aurora-docs-processing"
+    }
+  ]
+}

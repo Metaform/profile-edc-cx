@@ -1,0 +1,4 @@
+Aurora dataspace - quarterly processing report (sample document)
+
+If you can read this, the consumer negotiated a contract, started an HttpData-PULL transfer,
+obtained an access token from Siglet and the docshare backend accepted it.

@@ -1,0 +1,12 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "ParticipantContextConfig",
+  "identity": "${PCID}",
+  "entries": {
+    "edc.participant.id": "${PARTICIPANT_DID}",
+    "edc.iam.issuer.id": "${PARTICIPANT_DID}"
+  },
+  "privateEntries": {
+    "edc.vault.hashicorp.config": "{\"config\":{\"vaultUrl\":\"${VAULT_URL}\",\"secretPath\":\"v1/participants\",\"folderPath\":\"${PCID}/controlplane\"}}"
+  }
+}

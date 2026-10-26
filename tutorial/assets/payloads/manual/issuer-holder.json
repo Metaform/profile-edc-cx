@@ -1,0 +1,10 @@
+{
+  "holderId": "${PARTICIPANT_DID}",
+  "did": "${PARTICIPANT_DID}",
+  "name": "${PARTICIPANT_NAME}",
+  "properties": {
+    "id": "${PARTICIPANT_DID}",
+    "memberOf": "Aurora",
+    "level": "${ACCESS_LEVEL}"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "ParticipantContext",
+  "@id": "${PCID}",
+  "identity": "${PARTICIPANT_DID}",
+  "properties": {},
+  "state": "ACTIVATED"
+}

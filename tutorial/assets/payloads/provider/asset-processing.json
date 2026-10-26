@@ -1,0 +1,9 @@
+{
+  "@context": ["https://w3id.org/edc/connector/management/v2"],
+  "@type": "Asset",
+  "@id": "aurora-docs-processing",
+  "properties": {
+    "name": "Aurora shared documents (processing)",
+    "description": "Documents served by the docshare backend. Requires DataProcessorCredential.level = processing."
+  }
+}

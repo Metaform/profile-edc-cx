@@ -1,0 +1,112 @@
+# "docshare" - the sample backend the Aurora provider exposes through Siglet.
+#
+# It is the JAD data plane (eclipse-dataspace-hub/jad, extension `data-plane-certs`), a small
+# document store with two APIs:
+#   - control API (:8083 /api/control/certs)   provider-internal: upload / list documents.
+#                                               NOT routed through the gateway; use port-forward.
+#   - public API  (:8186 /api/data/certs)       consumer-facing: list / download documents.
+#                                               Every request must carry a Siglet-issued access
+#                                               token, validated against Siglet's JWKS.
+#
+# Rendered with envsubst (${NS}, ${RELEASE}, ${SVC}, ${HOST}) by scripts/05-backend.sh.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docshare-config
+  namespace: ${NS}
+data:
+  edc.hostname: "docshare.${SVC}"
+  web.http.port: "8080"
+  web.http.path: "/api"
+  web.http.control.port: "8083"
+  web.http.control.path: "/api/control"
+  web.http.public.port: "11002"
+  web.http.public.path: "/api/public"
+  web.http.certs.port: "8186"
+  web.http.certs.path: "/api/data"
+  # Dev-mode Vault and Postgres provided by CPD (the `dataplane` database is created by CPD).
+  edc.vault.hashicorp.url: "http://${RELEASE}-vault.${SVC}:8200"
+  edc.vault.hashicorp.token: "root"
+  edc.datasource.default.url: "jdbc:postgresql://${RELEASE}-postgresql.${SVC}:5432/dataplane"
+  edc.datasource.default.user: "dp"
+  edc.datasource.default.password: "dp"
+  edc.sql.schema.autocreate: "true"
+  # Token validation: accept only tokens issued by Siglet, verified with Siglet's public keys.
+  edc.iam.siglet.issuer: "siglet-issuer"
+  edc.iam.siglet.jwks.url: "http://siglet.${SVC}:8080/keys"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docshare
+  namespace: ${NS}
+  labels:
+    app: docshare
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docshare
+  template:
+    metadata:
+      labels:
+        app: docshare
+    spec:
+      containers:
+        - name: docshare
+          image: ghcr.io/eclipse-dataspace-hub/jad/dataplane:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: docshare-config
+          ports:
+            - { containerPort: 8080, name: health }
+            - { containerPort: 8083, name: control }
+            - { containerPort: 8186, name: public }
+          readinessProbe:
+            httpGet: { path: /api/check/readiness, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 20
+          livenessProbe:
+            httpGet: { path: /api/check/liveness, port: 8080 }
+            periodSeconds: 10
+            failureThreshold: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docshare
+  namespace: ${NS}
+spec:
+  selector:
+    app: docshare
+  ports:
+    - { name: health,  port: 8080, targetPort: 8080 }
+    - { name: control, port: 8083, targetPort: 8083 }
+    - { name: public,  port: 8186, targetPort: 8186 }
+---
+# Only the token-protected public API is exposed: http://${HOST}/api/docshare -> :8186/api/data
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: docshare
+  namespace: ${NS}
+spec:
+  parentRefs:
+    - name: edcv-gateway
+      namespace: ${NS}
+      kind: Gateway
+      sectionName: http
+  hostnames:
+    - ${HOST}
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api/docshare }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: { type: ReplacePrefixMatch, replacePrefixMatch: /api/data }
+      backendRefs:
+        - name: docshare
+          port: 8186
