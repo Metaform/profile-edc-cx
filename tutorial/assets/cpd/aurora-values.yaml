@@ -12,6 +12,10 @@ global:
   host: cpd.localhost
 
 edc:
+  issuerservice:
+    # the aurora credentials are VCDM 1.1 JWTs (VC1_0_JWT): the issuer's credential definitions get the format of its
+    # DCP profile, so it has to be the VCDM 1.1 one
+    dcpProfile: vc11-sl2021/jwt
   controlplane:
     dataspaceProfiles:
       # The DSP endpoint each participant advertises in its DID document is

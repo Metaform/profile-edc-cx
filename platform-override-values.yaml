@@ -6,6 +6,10 @@ edc:
     trustedIssuers:
       - name: cxtck
         id: "did:web:cx-tck.edc-v.svc.cluster.local:issuer"
+  issuerservice:
+    # Catena-X credentials are VCDM 1.1 JWTs (the dataspace profile requests VC1_0_JWT): the issuer must use
+    # the matching DCP profile, as it gives every credential definition the format of its profile
+    dcpProfile: vc11-sl2021/jwt
   identityhub:
     scopes:
       - name: membership
